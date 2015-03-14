@@ -29,15 +29,27 @@ COLUMN : 'COLUMN';
 COLUMNS : 'COLUMNS';
 CONSTRAINT : 'CONSTRAINT';
 FROM : 'FROM';
-
+INSERT : 'INSERT';
+INTO : 'INTO';
+VALUES : 'VALUES';
+UPDATE : 'UPDATE';
+SET : 'SET';
+WHERE : 'WHERE';
+DELETE : 'DELETE';
+SELECT : 'SELECT';
+ORDER : 'ORDER';
+BY : 'BY';
+ASC : 'ASC';
+DESC : 'DESC';
 
 fragment Letter : ('a'..'z'|'A'..'Z') ;
 fragment Digit :'0'..'9' ;
 fragment Any : (' ' ..'~') | '\\' | '\'' | '"' | '\t' | '\n' ;
 fragment AnyAll : Letter | Digit | Any ;
 
-Id : Letter(Letter|Digit)* ;
+Id : Letter(Letter|Digit|'_')* ;
 Num : Digit(Digit)* ;
+SimpDigit : Digit;
 Char : '\'' (AnyAll)* '\'' ;
 Comments: '//' ~('\r' | '\n' )*  -> channel(HIDDEN);
 WhitespaceDeclaration : [\t\r\n\f ]+ -> skip ;
@@ -72,20 +84,23 @@ showDatabase
 	;
 	
 tableInstruction
+	// Parte 1
 	:	(createTable
 	|	alterTable
 	|	dropTable
 	|	showTables
-	|	showColumns) ';'
+	|	showColumns
 	
-	//|	insertInto
-	//|	updateSet
-	//|	deleteFrom
-	//|	selectFrom
+	// Parte 2
+	
+	|	insertInto
+	|	updateSet
+	|	deleteFrom
+	|	selectFrom ) ';'
 	;
 		
 createTable
-	:	CREATE TABLE Id '(' (Id type (',' Id type)*)? (constraint)?  ')' ';'
+	:	CREATE TABLE Id '(' (Id type (',' Id type)*)? (constraint)?  ')'
 	;
 
 constraint
@@ -102,7 +117,8 @@ type
 	;
 
 date
-	: ('1'|'2') Digit Digit Digit '-' ('0'|'1') Digit '-' ('0'|'1'|'2'|'3') Digit ;
+	: ('1'|'2') SimpDigit SimpDigit SimpDigit '-' ('0'|'1') SimpDigit '-' ('0'|'1'|'2'|'3') SimpDigit 
+	;
 	
 expression
 	:	andExpression											#expAndExpression
@@ -185,12 +201,25 @@ int_literal
 
 float_literal
 	:	Num '.' Num
-	|	Num '/' Num
 	;
 	
 char_literal
 	:	Char
 	;
 	
+insertInto	
+	:	INSERT INTO Id ('('(Id(',' Id)*)? ')')? VALUES '(' (Char (',' Char)*)? ')'
+	;
+	
+updateSet
+	:	UPDATE Id SET (Id '=' Char)(',' Id '=' Char)* ( WHERE expression )?
+	;
 
+deleteFrom
+	:	DELETE FROM Id WHERE expression
+	;
+	
+selectFrom
+	:	SELECT ('*'|Id (',' Id)*) FROM Id (',' Id)* ( WHERE expression (ORDER BY Id (ASC | DESC)? (',' Id (ASC | DESC)?)*)? )?  
+	;
 

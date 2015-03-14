@@ -30,6 +30,16 @@ public interface GSQLListener extends ParseTreeListener {
 	 */
 	void exitEqOpExpression(@NotNull GSQLParser.EqOpExpressionContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link GSQLParser#selectFrom}.
+	 * @param ctx the parse tree
+	 */
+	void enterSelectFrom(@NotNull GSQLParser.SelectFromContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link GSQLParser#selectFrom}.
+	 * @param ctx the parse tree
+	 */
+	void exitSelectFrom(@NotNull GSQLParser.SelectFromContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link GSQLParser#alterDatabase}.
 	 * @param ctx the parse tree
 	 */
@@ -70,6 +80,16 @@ public interface GSQLListener extends ParseTreeListener {
 	 */
 	void exitDropDatabase(@NotNull GSQLParser.DropDatabaseContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link GSQLParser#deleteFrom}.
+	 * @param ctx the parse tree
+	 */
+	void enterDeleteFrom(@NotNull GSQLParser.DeleteFromContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link GSQLParser#deleteFrom}.
+	 * @param ctx the parse tree
+	 */
+	void exitDeleteFrom(@NotNull GSQLParser.DeleteFromContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link GSQLParser#showColumns}.
 	 * @param ctx the parse tree
 	 */
@@ -79,6 +99,16 @@ public interface GSQLListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitShowColumns(@NotNull GSQLParser.ShowColumnsContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link GSQLParser#date}.
+	 * @param ctx the parse tree
+	 */
+	void enterDate(@NotNull GSQLParser.DateContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link GSQLParser#date}.
+	 * @param ctx the parse tree
+	 */
+	void exitDate(@NotNull GSQLParser.DateContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link GSQLParser#type}.
 	 * @param ctx the parse tree
@@ -166,6 +196,16 @@ public interface GSQLListener extends ParseTreeListener {
 	 */
 	void exitCondExpression(@NotNull GSQLParser.CondExpressionContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link GSQLParser#insertInto}.
+	 * @param ctx the parse tree
+	 */
+	void enterInsertInto(@NotNull GSQLParser.InsertIntoContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link GSQLParser#insertInto}.
+	 * @param ctx the parse tree
+	 */
+	void exitInsertInto(@NotNull GSQLParser.InsertIntoContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link GSQLParser#showDatabase}.
 	 * @param ctx the parse tree
 	 */
@@ -219,16 +259,6 @@ public interface GSQLListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitRelOpExpression(@NotNull GSQLParser.RelOpExpressionContext ctx);
-	/**
-	 * Enter a parse tree produced by {@link GSQLParser#table}.
-	 * @param ctx the parse tree
-	 */
-	void enterTable(@NotNull GSQLParser.TableContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link GSQLParser#table}.
-	 * @param ctx the parse tree
-	 */
-	void exitTable(@NotNull GSQLParser.TableContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link GSQLParser#andOp}.
 	 * @param ctx the parse tree
@@ -333,6 +363,26 @@ public interface GSQLListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitRelSumExpression(@NotNull GSQLParser.RelSumExpressionContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link GSQLParser#updateSet}.
+	 * @param ctx the parse tree
+	 */
+	void enterUpdateSet(@NotNull GSQLParser.UpdateSetContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link GSQLParser#updateSet}.
+	 * @param ctx the parse tree
+	 */
+	void exitUpdateSet(@NotNull GSQLParser.UpdateSetContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link GSQLParser#tableInstruction}.
+	 * @param ctx the parse tree
+	 */
+	void enterTableInstruction(@NotNull GSQLParser.TableInstructionContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link GSQLParser#tableInstruction}.
+	 * @param ctx the parse tree
+	 */
+	void exitTableInstruction(@NotNull GSQLParser.TableInstructionContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link GSQLParser#literal}.
 	 * @param ctx the parse tree

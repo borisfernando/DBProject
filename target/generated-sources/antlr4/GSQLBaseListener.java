@@ -40,6 +40,18 @@ public class GSQLBaseListener implements GSQLListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterSelectFrom(@NotNull GSQLParser.SelectFromContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSelectFrom(@NotNull GSQLParser.SelectFromContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterAlterDatabase(@NotNull GSQLParser.AlterDatabaseContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -88,6 +100,18 @@ public class GSQLBaseListener implements GSQLListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterDeleteFrom(@NotNull GSQLParser.DeleteFromContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitDeleteFrom(@NotNull GSQLParser.DeleteFromContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterShowColumns(@NotNull GSQLParser.ShowColumnsContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -95,6 +119,18 @@ public class GSQLBaseListener implements GSQLListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitShowColumns(@NotNull GSQLParser.ShowColumnsContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterDate(@NotNull GSQLParser.DateContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitDate(@NotNull GSQLParser.DateContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -196,6 +232,18 @@ public class GSQLBaseListener implements GSQLListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterInsertInto(@NotNull GSQLParser.InsertIntoContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitInsertInto(@NotNull GSQLParser.InsertIntoContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterShowDatabase(@NotNull GSQLParser.ShowDatabaseContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -251,18 +299,6 @@ public class GSQLBaseListener implements GSQLListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitRelOpExpression(@NotNull GSQLParser.RelOpExpressionContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void enterTable(@NotNull GSQLParser.TableContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitTable(@NotNull GSQLParser.TableContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -383,6 +419,30 @@ public class GSQLBaseListener implements GSQLListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitRelSumExpression(@NotNull GSQLParser.RelSumExpressionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterUpdateSet(@NotNull GSQLParser.UpdateSetContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitUpdateSet(@NotNull GSQLParser.UpdateSetContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterTableInstruction(@NotNull GSQLParser.TableInstructionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitTableInstruction(@NotNull GSQLParser.TableInstructionContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

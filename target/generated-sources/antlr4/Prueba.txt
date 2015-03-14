@@ -1,1 +1,15 @@
-CREATE DATABASE db;
+CREATE TABLE Persons
+
+(
+
+PersonID int,
+
+LastName char(255),
+
+FirstName char(255),
+
+Address char(255),
+
+City char(255)
+
+);
