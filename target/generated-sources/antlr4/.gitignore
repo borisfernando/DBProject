@@ -55,3 +55,8 @@
 /GSQLParser$UpdateSetContext.class
 /GSQLParser$DeleteFromContext.class
 /GSQLParser$SelectFromContext.class
+/GSQLVisitor.java
+/GSQLBaseVisitor.java
+/GSQLBaseVisitor.class
+/GSQLVisitor.class
+/DBVisitor.class

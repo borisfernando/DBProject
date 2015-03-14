@@ -105,6 +105,11 @@ public class GSQLParser extends Parser {
 		public void exitRule(ParseTreeListener listener) {
 			if ( listener instanceof GSQLListener ) ((GSQLListener)listener).exitDatabase(this);
 		}
+		@Override
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof GSQLVisitor ) return ((GSQLVisitor<? extends T>)visitor).visitDatabase(this);
+			else return visitor.visitChildren(this);
+		}
 	}
 
 	public final DatabaseContext database() throws RecognitionException {
@@ -178,6 +183,11 @@ public class GSQLParser extends Parser {
 		public void exitRule(ParseTreeListener listener) {
 			if ( listener instanceof GSQLListener ) ((GSQLListener)listener).exitCreateDatabase(this);
 		}
+		@Override
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof GSQLVisitor ) return ((GSQLVisitor<? extends T>)visitor).visitCreateDatabase(this);
+			else return visitor.visitChildren(this);
+		}
 	}
 
 	public final CreateDatabaseContext createDatabase() throws RecognitionException {
@@ -224,6 +234,11 @@ public class GSQLParser extends Parser {
 		public void exitRule(ParseTreeListener listener) {
 			if ( listener instanceof GSQLListener ) ((GSQLListener)listener).exitAlterDatabase(this);
 		}
+		@Override
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof GSQLVisitor ) return ((GSQLVisitor<? extends T>)visitor).visitAlterDatabase(this);
+			else return visitor.visitChildren(this);
+		}
 	}
 
 	public final AlterDatabaseContext alterDatabase() throws RecognitionException {
@@ -268,6 +283,11 @@ public class GSQLParser extends Parser {
 		public void exitRule(ParseTreeListener listener) {
 			if ( listener instanceof GSQLListener ) ((GSQLListener)listener).exitDropDatabase(this);
 		}
+		@Override
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof GSQLVisitor ) return ((GSQLVisitor<? extends T>)visitor).visitDropDatabase(this);
+			else return visitor.visitChildren(this);
+		}
 	}
 
 	public final DropDatabaseContext dropDatabase() throws RecognitionException {
@@ -309,6 +329,11 @@ public class GSQLParser extends Parser {
 		public void exitRule(ParseTreeListener listener) {
 			if ( listener instanceof GSQLListener ) ((GSQLListener)listener).exitUseDatabase(this);
 		}
+		@Override
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof GSQLVisitor ) return ((GSQLVisitor<? extends T>)visitor).visitUseDatabase(this);
+			else return visitor.visitChildren(this);
+		}
 	}
 
 	public final UseDatabaseContext useDatabase() throws RecognitionException {
@@ -348,6 +373,11 @@ public class GSQLParser extends Parser {
 		@Override
 		public void exitRule(ParseTreeListener listener) {
 			if ( listener instanceof GSQLListener ) ((GSQLListener)listener).exitShowDatabase(this);
+		}
+		@Override
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof GSQLVisitor ) return ((GSQLVisitor<? extends T>)visitor).visitShowDatabase(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -412,6 +442,11 @@ public class GSQLParser extends Parser {
 		@Override
 		public void exitRule(ParseTreeListener listener) {
 			if ( listener instanceof GSQLListener ) ((GSQLListener)listener).exitTableInstruction(this);
+		}
+		@Override
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof GSQLVisitor ) return ((GSQLVisitor<? extends T>)visitor).visitTableInstruction(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -511,6 +546,11 @@ public class GSQLParser extends Parser {
 		public void exitRule(ParseTreeListener listener) {
 			if ( listener instanceof GSQLListener ) ((GSQLListener)listener).exitCreateTable(this);
 		}
+		@Override
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof GSQLVisitor ) return ((GSQLVisitor<? extends T>)visitor).visitCreateTable(this);
+			else return visitor.visitChildren(this);
+		}
 	}
 
 	public final CreateTableContext createTable() throws RecognitionException {
@@ -600,6 +640,11 @@ public class GSQLParser extends Parser {
 		@Override
 		public void exitRule(ParseTreeListener listener) {
 			if ( listener instanceof GSQLListener ) ((GSQLListener)listener).exitConstraint(this);
+		}
+		@Override
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof GSQLVisitor ) return ((GSQLVisitor<? extends T>)visitor).visitConstraint(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -730,6 +775,11 @@ public class GSQLParser extends Parser {
 		public void exitRule(ParseTreeListener listener) {
 			if ( listener instanceof GSQLListener ) ((GSQLListener)listener).exitType(this);
 		}
+		@Override
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof GSQLVisitor ) return ((GSQLVisitor<? extends T>)visitor).visitType(this);
+			else return visitor.visitChildren(this);
+		}
 	}
 
 	public final TypeContext type() throws RecognitionException {
@@ -797,6 +847,11 @@ public class GSQLParser extends Parser {
 		@Override
 		public void exitRule(ParseTreeListener listener) {
 			if ( listener instanceof GSQLListener ) ((GSQLListener)listener).exitDate(this);
+		}
+		@Override
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof GSQLVisitor ) return ((GSQLVisitor<? extends T>)visitor).visitDate(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -869,6 +924,11 @@ public class GSQLParser extends Parser {
 		public void exitRule(ParseTreeListener listener) {
 			if ( listener instanceof GSQLListener ) ((GSQLListener)listener).exitExpAndExpression(this);
 		}
+		@Override
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof GSQLVisitor ) return ((GSQLVisitor<? extends T>)visitor).visitExpAndExpression(this);
+			else return visitor.visitChildren(this);
+		}
 	}
 	public static class CondOrExpressionContext extends ExpressionContext {
 		public OrOpContext orOp() {
@@ -888,6 +948,11 @@ public class GSQLParser extends Parser {
 		@Override
 		public void exitRule(ParseTreeListener listener) {
 			if ( listener instanceof GSQLListener ) ((GSQLListener)listener).exitCondOrExpression(this);
+		}
+		@Override
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof GSQLVisitor ) return ((GSQLVisitor<? extends T>)visitor).visitCondOrExpression(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -973,6 +1038,11 @@ public class GSQLParser extends Parser {
 		public void exitRule(ParseTreeListener listener) {
 			if ( listener instanceof GSQLListener ) ((GSQLListener)listener).exitEqAndExpression(this);
 		}
+		@Override
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof GSQLVisitor ) return ((GSQLVisitor<? extends T>)visitor).visitEqAndExpression(this);
+			else return visitor.visitChildren(this);
+		}
 	}
 	public static class CondExpressionContext extends AndExpressionContext {
 		public EqExpressionContext eqExpression() {
@@ -992,6 +1062,11 @@ public class GSQLParser extends Parser {
 		@Override
 		public void exitRule(ParseTreeListener listener) {
 			if ( listener instanceof GSQLListener ) ((GSQLListener)listener).exitCondExpression(this);
+		}
+		@Override
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof GSQLVisitor ) return ((GSQLVisitor<? extends T>)visitor).visitCondExpression(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -1077,6 +1152,11 @@ public class GSQLParser extends Parser {
 		public void exitRule(ParseTreeListener listener) {
 			if ( listener instanceof GSQLListener ) ((GSQLListener)listener).exitEqRelExpression(this);
 		}
+		@Override
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof GSQLVisitor ) return ((GSQLVisitor<? extends T>)visitor).visitEqRelExpression(this);
+			else return visitor.visitChildren(this);
+		}
 	}
 	public static class EqOpExpressionContext extends EqExpressionContext {
 		public EqExpressionContext eqExpression() {
@@ -1096,6 +1176,11 @@ public class GSQLParser extends Parser {
 		@Override
 		public void exitRule(ParseTreeListener listener) {
 			if ( listener instanceof GSQLListener ) ((GSQLListener)listener).exitEqOpExpression(this);
+		}
+		@Override
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof GSQLVisitor ) return ((GSQLVisitor<? extends T>)visitor).visitEqOpExpression(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -1187,6 +1272,11 @@ public class GSQLParser extends Parser {
 		public void exitRule(ParseTreeListener listener) {
 			if ( listener instanceof GSQLListener ) ((GSQLListener)listener).exitRelOpExpression(this);
 		}
+		@Override
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof GSQLVisitor ) return ((GSQLVisitor<? extends T>)visitor).visitRelOpExpression(this);
+			else return visitor.visitChildren(this);
+		}
 	}
 	public static class RelSumExpressionContext extends RelExpressionContext {
 		public UnExpressionContext unExpression() {
@@ -1200,6 +1290,11 @@ public class GSQLParser extends Parser {
 		@Override
 		public void exitRule(ParseTreeListener listener) {
 			if ( listener instanceof GSQLListener ) ((GSQLListener)listener).exitRelSumExpression(this);
+		}
+		@Override
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof GSQLVisitor ) return ((GSQLVisitor<? extends T>)visitor).visitRelSumExpression(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -1279,6 +1374,11 @@ public class GSQLParser extends Parser {
 		public void exitRule(ParseTreeListener listener) {
 			if ( listener instanceof GSQLListener ) ((GSQLListener)listener).exitUnExpression(this);
 		}
+		@Override
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof GSQLVisitor ) return ((GSQLVisitor<? extends T>)visitor).visitUnExpression(this);
+			else return visitor.visitChildren(this);
+		}
 	}
 
 	public final UnExpressionContext unExpression() throws RecognitionException {
@@ -1338,6 +1438,11 @@ public class GSQLParser extends Parser {
 		public void exitRule(ParseTreeListener listener) {
 			if ( listener instanceof GSQLListener ) ((GSQLListener)listener).exitEqOp(this);
 		}
+		@Override
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof GSQLVisitor ) return ((GSQLVisitor<? extends T>)visitor).visitEqOp(this);
+			else return visitor.visitChildren(this);
+		}
 	}
 
 	public final EqOpContext eqOp() throws RecognitionException {
@@ -1378,6 +1483,11 @@ public class GSQLParser extends Parser {
 		@Override
 		public void exitRule(ParseTreeListener listener) {
 			if ( listener instanceof GSQLListener ) ((GSQLListener)listener).exitRelOp(this);
+		}
+		@Override
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof GSQLVisitor ) return ((GSQLVisitor<? extends T>)visitor).visitRelOp(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -1421,6 +1531,11 @@ public class GSQLParser extends Parser {
 		public void exitRule(ParseTreeListener listener) {
 			if ( listener instanceof GSQLListener ) ((GSQLListener)listener).exitOrOp(this);
 		}
+		@Override
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof GSQLVisitor ) return ((GSQLVisitor<? extends T>)visitor).visitOrOp(this);
+			else return visitor.visitChildren(this);
+		}
 	}
 
 	public final OrOpContext orOp() throws RecognitionException {
@@ -1456,6 +1571,11 @@ public class GSQLParser extends Parser {
 		@Override
 		public void exitRule(ParseTreeListener listener) {
 			if ( listener instanceof GSQLListener ) ((GSQLListener)listener).exitAndOp(this);
+		}
+		@Override
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof GSQLVisitor ) return ((GSQLVisitor<? extends T>)visitor).visitAndOp(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -1505,6 +1625,11 @@ public class GSQLParser extends Parser {
 		@Override
 		public void exitRule(ParseTreeListener listener) {
 			if ( listener instanceof GSQLListener ) ((GSQLListener)listener).exitAlterTable(this);
+		}
+		@Override
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof GSQLVisitor ) return ((GSQLVisitor<? extends T>)visitor).visitAlterTable(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -1584,6 +1709,11 @@ public class GSQLParser extends Parser {
 		public void exitRule(ParseTreeListener listener) {
 			if ( listener instanceof GSQLListener ) ((GSQLListener)listener).exitAction(this);
 		}
+		@Override
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof GSQLVisitor ) return ((GSQLVisitor<? extends T>)visitor).visitAction(this);
+			else return visitor.visitChildren(this);
+		}
 	}
 
 	public final ActionContext action() throws RecognitionException {
@@ -1656,6 +1786,11 @@ public class GSQLParser extends Parser {
 		public void exitRule(ParseTreeListener listener) {
 			if ( listener instanceof GSQLListener ) ((GSQLListener)listener).exitDropTable(this);
 		}
+		@Override
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof GSQLVisitor ) return ((GSQLVisitor<? extends T>)visitor).visitDropTable(this);
+			else return visitor.visitChildren(this);
+		}
 	}
 
 	public final DropTableContext dropTable() throws RecognitionException {
@@ -1694,6 +1829,11 @@ public class GSQLParser extends Parser {
 		@Override
 		public void exitRule(ParseTreeListener listener) {
 			if ( listener instanceof GSQLListener ) ((GSQLListener)listener).exitShowTables(this);
+		}
+		@Override
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof GSQLVisitor ) return ((GSQLVisitor<? extends T>)visitor).visitShowTables(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -1734,6 +1874,11 @@ public class GSQLParser extends Parser {
 		@Override
 		public void exitRule(ParseTreeListener listener) {
 			if ( listener instanceof GSQLListener ) ((GSQLListener)listener).exitShowColumns(this);
+		}
+		@Override
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof GSQLVisitor ) return ((GSQLVisitor<? extends T>)visitor).visitShowColumns(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -1781,6 +1926,11 @@ public class GSQLParser extends Parser {
 		@Override
 		public void exitRule(ParseTreeListener listener) {
 			if ( listener instanceof GSQLListener ) ((GSQLListener)listener).exitLiteral(this);
+		}
+		@Override
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof GSQLVisitor ) return ((GSQLVisitor<? extends T>)visitor).visitLiteral(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -1835,6 +1985,11 @@ public class GSQLParser extends Parser {
 		public void exitRule(ParseTreeListener listener) {
 			if ( listener instanceof GSQLListener ) ((GSQLListener)listener).exitInt_literal(this);
 		}
+		@Override
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof GSQLVisitor ) return ((GSQLVisitor<? extends T>)visitor).visitInt_literal(this);
+			else return visitor.visitChildren(this);
+		}
 	}
 
 	public final Int_literalContext int_literal() throws RecognitionException {
@@ -1874,6 +2029,11 @@ public class GSQLParser extends Parser {
 		public void exitRule(ParseTreeListener listener) {
 			if ( listener instanceof GSQLListener ) ((GSQLListener)listener).exitFloat_literal(this);
 		}
+		@Override
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof GSQLVisitor ) return ((GSQLVisitor<? extends T>)visitor).visitFloat_literal(this);
+			else return visitor.visitChildren(this);
+		}
 	}
 
 	public final Float_literalContext float_literal() throws RecognitionException {
@@ -1911,6 +2071,11 @@ public class GSQLParser extends Parser {
 		@Override
 		public void exitRule(ParseTreeListener listener) {
 			if ( listener instanceof GSQLListener ) ((GSQLListener)listener).exitChar_literal(this);
+		}
+		@Override
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof GSQLVisitor ) return ((GSQLVisitor<? extends T>)visitor).visitChar_literal(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -1957,6 +2122,11 @@ public class GSQLParser extends Parser {
 		@Override
 		public void exitRule(ParseTreeListener listener) {
 			if ( listener instanceof GSQLListener ) ((GSQLListener)listener).exitInsertInto(this);
+		}
+		@Override
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof GSQLVisitor ) return ((GSQLVisitor<? extends T>)visitor).visitInsertInto(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -2066,6 +2236,11 @@ public class GSQLParser extends Parser {
 		public void exitRule(ParseTreeListener listener) {
 			if ( listener instanceof GSQLListener ) ((GSQLListener)listener).exitUpdateSet(this);
 		}
+		@Override
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof GSQLVisitor ) return ((GSQLVisitor<? extends T>)visitor).visitUpdateSet(this);
+			else return visitor.visitChildren(this);
+		}
 	}
 
 	public final UpdateSetContext updateSet() throws RecognitionException {
@@ -2141,6 +2316,11 @@ public class GSQLParser extends Parser {
 		public void exitRule(ParseTreeListener listener) {
 			if ( listener instanceof GSQLListener ) ((GSQLListener)listener).exitDeleteFrom(this);
 		}
+		@Override
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof GSQLVisitor ) return ((GSQLVisitor<? extends T>)visitor).visitDeleteFrom(this);
+			else return visitor.visitChildren(this);
+		}
 	}
 
 	public final DeleteFromContext deleteFrom() throws RecognitionException {
@@ -2199,6 +2379,11 @@ public class GSQLParser extends Parser {
 		@Override
 		public void exitRule(ParseTreeListener listener) {
 			if ( listener instanceof GSQLListener ) ((GSQLListener)listener).exitSelectFrom(this);
+		}
+		@Override
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof GSQLVisitor ) return ((GSQLVisitor<? extends T>)visitor).visitSelectFrom(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 

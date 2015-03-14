@@ -23,6 +23,7 @@ import javax.swing.text.TabStop;
 
 import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.tree.ParseTree;
 
 import javax.swing.GroupLayout;
 import javax.swing.GroupLayout.Alignment;
@@ -33,7 +34,7 @@ public class GUI {
 
 	private JFrame frame;
 	private JTextPane tConsola2;
-	private JScrollPane sTerminal,sConsola;
+	private JScrollPane sConsola;
 
 	/**
 	 * Launch the application.
@@ -62,6 +63,7 @@ public class GUI {
 	 * Initialize the contents of the frame.
 	 */
 	private void initialize() {
+		//Tabuladores para el JTextPane
 		TabStop[] tabs = new TabStop[7];
 	    tabs[0] = new TabStop(15, TabStop.ALIGN_LEFT, TabStop.LEAD_NONE);
 	    tabs[1] = new TabStop(30, TabStop.ALIGN_LEFT, TabStop.LEAD_NONE);
@@ -86,18 +88,20 @@ public class GUI {
 		
 		JButton bCompilar = new JButton("Compilar");
 		bCompilar.setBounds(184, 5, 73, 23);
-		//pConsola.setLayout(new MigLayout("", "[353px,grow,fill][39px][39px]", "[200px:n,grow,fill][5px:n][100px:n]"));
 		tConsola2 = new JTextPane();
+		tConsola2.setText("");
 		tConsola2.setBackground(new Color(255, 255, 255));
 		tConsola2.setBounds(1, 1, 6, 20);
-		pConsola.add(tConsola2);
 		tConsola2.setParagraphAttributes(aset, false);
+		TextLineNumber tln = new TextLineNumber(tConsola2);
+		
+		pConsola.add(tConsola2);
 		pConsola.setLayout(null);
-		//tConsola2.setText("sql> ");
+		
 		sConsola = new JScrollPane(tConsola2);
 		sConsola.setBounds(171, 500, 500, 23);
-		TextLineNumber tln = new TextLineNumber(tConsola2);
 		sConsola.setRowHeaderView(tln);
+		
 		GroupLayout gl_pConsola = new GroupLayout(pConsola);
 		gl_pConsola.setHorizontalGroup(
 			gl_pConsola.createParallelGroup(Alignment.TRAILING)
@@ -121,33 +125,27 @@ public class GUI {
 					.addContainerGap())
 		);
 		pConsola.setLayout(gl_pConsola);
-		tConsola2.setText("");
+		
 		bCompilar.addActionListener(new ActionListener()  {
 			public void actionPerformed(ActionEvent arg0) {
 				try{
-					String textoConsola = tConsola2.getText();
+					/*String textoConsola = tConsola2.getText();
 					tConsola2.setText("");
 					tConsola2.setForeground(Color.BLACK);
-					appendToPane(tConsola2, textoConsola, Color.BLACK);
-					PrintWriter out = new PrintWriter("Prueba.txt");
-					out.println(tConsola2.getText());
-					out.close();
+					appendToPane(tConsola2, textoConsola, Color.BLACK);*/
 					
-					FileInputStream is = new FileInputStream("Prueba.txt");
-					
-					ANTLRInputStream input = new ANTLRInputStream(is);
+					ANTLRInputStream input = new ANTLRInputStream(tConsola2.getText());
 					GSQLLexer lexer = new GSQLLexer(input);
 					CommonTokenStream tokens = new CommonTokenStream(lexer);
 					GSQLParser parser = new GSQLParser(tokens);
-
-					Future<JDialog> tree = parser.database().inspect(parser);
-					//parser.removeErrorListeners();					
-					//VerboseListener vL = new VerboseListener();
-					//parser.addErrorListener(vL);
-					//tConsola2.setText(tConsola2.getText()+"sql> ");
+					//Future<JDialog> tree2 = parser.database().inspect(parser);
+					ParseTree tree = parser.database();
+					DBVisitor visitor = new DBVisitor();
+					visitor.visit(tree);
 					
+					System.out.println("DBACTUAL : "+visitor.returnDBActual());
 				}catch(Exception e){
-					
+					e.printStackTrace();
 				}
 			}
 		});
