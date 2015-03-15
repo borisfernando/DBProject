@@ -1,3 +1,4 @@
+# ANTLR Files #
 *.class
 GSQLBaseListener.java
 GSQLBaseVisitor.java
@@ -13,6 +14,15 @@ GSQLVisitor.java
 *.jar
 *.war
 *.ear
+
+# Eclipse #
+.classpath
+.project
+.settings
+.idea
+.metadata
+*.iml
+*.ipr
 
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
