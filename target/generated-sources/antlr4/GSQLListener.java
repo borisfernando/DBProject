@@ -50,15 +50,17 @@ public interface GSQLListener extends ParseTreeListener {
 	 */
 	void exitAlterDatabase(@NotNull GSQLParser.AlterDatabaseContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link GSQLParser#alterTable}.
+	 * Enter a parse tree produced by the {@code actionAddColumn}
+	 * labeled alternative in {@link GSQLParser#action}.
 	 * @param ctx the parse tree
 	 */
-	void enterAlterTable(@NotNull GSQLParser.AlterTableContext ctx);
+	void enterActionAddColumn(@NotNull GSQLParser.ActionAddColumnContext ctx);
 	/**
-	 * Exit a parse tree produced by {@link GSQLParser#alterTable}.
+	 * Exit a parse tree produced by the {@code actionAddColumn}
+	 * labeled alternative in {@link GSQLParser#action}.
 	 * @param ctx the parse tree
 	 */
-	void exitAlterTable(@NotNull GSQLParser.AlterTableContext ctx);
+	void exitActionAddColumn(@NotNull GSQLParser.ActionAddColumnContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link GSQLParser#constraint}.
 	 * @param ctx the parse tree
@@ -174,15 +176,17 @@ public interface GSQLListener extends ParseTreeListener {
 	 */
 	void exitCondOrExpression(@NotNull GSQLParser.CondOrExpressionContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link GSQLParser#action}.
+	 * Enter a parse tree produced by the {@code actionDropColumn}
+	 * labeled alternative in {@link GSQLParser#action}.
 	 * @param ctx the parse tree
 	 */
-	void enterAction(@NotNull GSQLParser.ActionContext ctx);
+	void enterActionDropColumn(@NotNull GSQLParser.ActionDropColumnContext ctx);
 	/**
-	 * Exit a parse tree produced by {@link GSQLParser#action}.
+	 * Exit a parse tree produced by the {@code actionDropColumn}
+	 * labeled alternative in {@link GSQLParser#action}.
 	 * @param ctx the parse tree
 	 */
-	void exitAction(@NotNull GSQLParser.ActionContext ctx);
+	void exitActionDropColumn(@NotNull GSQLParser.ActionDropColumnContext ctx);
 	/**
 	 * Enter a parse tree produced by the {@code condExpression}
 	 * labeled alternative in {@link GSQLParser#andExpression}.
@@ -259,6 +263,30 @@ public interface GSQLListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitRelOpExpression(@NotNull GSQLParser.RelOpExpressionContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code renameAlterTable}
+	 * labeled alternative in {@link GSQLParser#alterTable}.
+	 * @param ctx the parse tree
+	 */
+	void enterRenameAlterTable(@NotNull GSQLParser.RenameAlterTableContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code renameAlterTable}
+	 * labeled alternative in {@link GSQLParser#alterTable}.
+	 * @param ctx the parse tree
+	 */
+	void exitRenameAlterTable(@NotNull GSQLParser.RenameAlterTableContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code actionDropConstraint}
+	 * labeled alternative in {@link GSQLParser#action}.
+	 * @param ctx the parse tree
+	 */
+	void enterActionDropConstraint(@NotNull GSQLParser.ActionDropConstraintContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code actionDropConstraint}
+	 * labeled alternative in {@link GSQLParser#action}.
+	 * @param ctx the parse tree
+	 */
+	void exitActionDropConstraint(@NotNull GSQLParser.ActionDropConstraintContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link GSQLParser#andOp}.
 	 * @param ctx the parse tree
@@ -352,6 +380,18 @@ public interface GSQLListener extends ParseTreeListener {
 	 */
 	void exitOrOp(@NotNull GSQLParser.OrOpContext ctx);
 	/**
+	 * Enter a parse tree produced by the {@code actionAlterTable}
+	 * labeled alternative in {@link GSQLParser#alterTable}.
+	 * @param ctx the parse tree
+	 */
+	void enterActionAlterTable(@NotNull GSQLParser.ActionAlterTableContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code actionAlterTable}
+	 * labeled alternative in {@link GSQLParser#alterTable}.
+	 * @param ctx the parse tree
+	 */
+	void exitActionAlterTable(@NotNull GSQLParser.ActionAlterTableContext ctx);
+	/**
 	 * Enter a parse tree produced by the {@code relSumExpression}
 	 * labeled alternative in {@link GSQLParser#relExpression}.
 	 * @param ctx the parse tree
@@ -383,6 +423,18 @@ public interface GSQLListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitTableInstruction(@NotNull GSQLParser.TableInstructionContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code actionAddConstraint}
+	 * labeled alternative in {@link GSQLParser#action}.
+	 * @param ctx the parse tree
+	 */
+	void enterActionAddConstraint(@NotNull GSQLParser.ActionAddConstraintContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code actionAddConstraint}
+	 * labeled alternative in {@link GSQLParser#action}.
+	 * @param ctx the parse tree
+	 */
+	void exitActionAddConstraint(@NotNull GSQLParser.ActionAddConstraintContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link GSQLParser#literal}.
 	 * @param ctx the parse tree

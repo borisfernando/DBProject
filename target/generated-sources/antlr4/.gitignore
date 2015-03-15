@@ -60,3 +60,9 @@
 /GSQLBaseVisitor.class
 /GSQLVisitor.class
 /DBVisitor.class
+/GSQLParser$ActionAlterTableContext.class
+/GSQLParser$RenameAlterTableContext.class
+/GSQLParser$ActionAddColumnContext.class
+/GSQLParser$ActionAddConstraintContext.class
+/GSQLParser$ActionDropColumnContext.class
+/GSQLParser$ActionDropConstraintContext.class

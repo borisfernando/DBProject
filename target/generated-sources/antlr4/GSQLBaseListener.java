@@ -64,13 +64,13 @@ public class GSQLBaseListener implements GSQLListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterAlterTable(@NotNull GSQLParser.AlterTableContext ctx) { }
+	@Override public void enterActionAddColumn(@NotNull GSQLParser.ActionAddColumnContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitAlterTable(@NotNull GSQLParser.AlterTableContext ctx) { }
+	@Override public void exitActionAddColumn(@NotNull GSQLParser.ActionAddColumnContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -208,13 +208,13 @@ public class GSQLBaseListener implements GSQLListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterAction(@NotNull GSQLParser.ActionContext ctx) { }
+	@Override public void enterActionDropColumn(@NotNull GSQLParser.ActionDropColumnContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitAction(@NotNull GSQLParser.ActionContext ctx) { }
+	@Override public void exitActionDropColumn(@NotNull GSQLParser.ActionDropColumnContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -299,6 +299,30 @@ public class GSQLBaseListener implements GSQLListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitRelOpExpression(@NotNull GSQLParser.RelOpExpressionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterRenameAlterTable(@NotNull GSQLParser.RenameAlterTableContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitRenameAlterTable(@NotNull GSQLParser.RenameAlterTableContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterActionDropConstraint(@NotNull GSQLParser.ActionDropConstraintContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitActionDropConstraint(@NotNull GSQLParser.ActionDropConstraintContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -412,6 +436,18 @@ public class GSQLBaseListener implements GSQLListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterActionAlterTable(@NotNull GSQLParser.ActionAlterTableContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitActionAlterTable(@NotNull GSQLParser.ActionAlterTableContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterRelSumExpression(@NotNull GSQLParser.RelSumExpressionContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -443,6 +479,18 @@ public class GSQLBaseListener implements GSQLListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitTableInstruction(@NotNull GSQLParser.TableInstructionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterActionAddConstraint(@NotNull GSQLParser.ActionAddConstraintContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitActionAddConstraint(@NotNull GSQLParser.ActionAddConstraintContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

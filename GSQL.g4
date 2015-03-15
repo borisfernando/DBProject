@@ -166,15 +166,15 @@ andOp
 	;
 	
 alterTable
-	:	ALTER TABLE Id RENAME TO Id
-	|	ALTER TABLE Id (action)*
+	:	ALTER TABLE Id RENAME TO Id						#renameAlterTable
+	|	ALTER TABLE Id (action)*						#actionAlterTable
 	;
 
 action
-	:	ADD COLUMN Id type CONSTRAINT constraint
-	|	ADD CONSTRAINT constraint
-	|	DROP COLUMN Id
-	|	DROP CONSTRAINT Id
+	:	ADD COLUMN Id type (CONSTRAINT constraint)?		#actionAddColumn
+	|	ADD CONSTRAINT constraint						#actionAddConstraint
+	|	DROP COLUMN Id									#actionDropColumn
+	|	DROP CONSTRAINT Id								#actionDropConstraint
 	;
 	
 dropTable
