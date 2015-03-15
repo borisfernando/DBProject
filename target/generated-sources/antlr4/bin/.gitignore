@@ -1,6 +1,5 @@
 # ANTLR Files #
 *.class
-*.tokens
 GSQLBaseListener.java
 GSQLBaseVisitor.java
 GSQLLexer.java
@@ -15,7 +14,6 @@ GSQLVisitor.java
 *.jar
 *.war
 *.ear
-*.zip
 
 # Eclipse #
 .classpath
