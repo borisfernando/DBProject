@@ -1,4 +1,5 @@
 # ANTLR Files #
+bin/
 *.class
 *.tokens
 GSQLBaseListener.java
