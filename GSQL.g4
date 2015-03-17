@@ -44,7 +44,8 @@ DESC : 'DESC';
 
 fragment Letter : ('a'..'z'|'A'..'Z') ;
 fragment Digit :'0'..'9' ;
-fragment Any : (' ' ..'~') | '\\' | '\'' | '"' | '\t' | '\n' ;
+fragment Any : ' ' | '#' | '$' | '%' | '.' | '_' | '\\' | '\'' | '"' | '\t' | '\n' ;
+fragment AnyT : (' ' .. '~') | '\\' | '\'' | '"' | '\t' | '\n' ;
 fragment AnyAll : Letter | Digit | Any ;
 
 Id : Letter(Letter|Digit|'_')* ;
@@ -100,13 +101,13 @@ tableInstruction
 	;
 		
 createTable
-	:	CREATE TABLE Id '(' (Id type (',' Id type)*)? (constraint)?  ')'
+	:	CREATE TABLE Id '(' (Id type (',' Id type)*)? (CONSTRAINT constraint)?  ')'
 	;
 
 constraint
-	:	(Id PRIMARY KEY '(' Id (',' Id)* ')'
-	|	Id FOREIGN KEY '(' Id (',' Id)* ')' REFERENCES Id '(' Id (',' Id)* ')')
-		(Id CHECK '(' expression ')')*
+	:	(name=Id? PRIMARY KEY '(' Id (',' Id)* ')'
+	|	name=Id? FOREIGN KEY '(' Id (',' Id)* ')' REFERENCES Id '(' Id (',' Id)* ')')
+		(name=Id? CHECK '(' expression ')')*
 	;
 	
 type
@@ -208,7 +209,7 @@ char_literal
 	;
 	
 insertInto	
-	:	INSERT INTO Id ('('(Id(',' Id)*)? ')')? VALUES '(' (Char (',' Char)*)? ')'
+	:	INSERT INTO Id ('('(Id(',' Id)*)? ')')? VALUES '(' (literal (',' literal)*)? ')'
 	;
 	
 updateSet
