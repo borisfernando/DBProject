@@ -12,8 +12,6 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
-//import GSQLParser.DatabaseContext;
-
 public class DBVisitor extends GSQLBaseVisitor<String>{
 	public static String DBActual = null;
 	public static String TableActual = null;
@@ -374,6 +372,8 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 	
 	@Override
 	public String visitDropTable(GSQLParser.DropTableContext ctx) {
+		// TODO Auto-generated method stub
+		// FALTA REVISAR LAS REFERENCIAS PARA PODER ELIMINAR POR COMPLETO LA TABLA
 		try{
 			File f = new File("DB/"+DBActual+"/"+ctx.Id().getText()+".xml");
 			if (existTable(f)){
@@ -440,6 +440,46 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 	@Override
 	public String visitShowTables(GSQLParser.ShowTablesContext ctx) {
 		// TODO Auto-generated method stub
+		try{
+			Table t = new Table();
+			File folder = new File("DB/"+DBActual+"/");
+			File[] listOfFiles = folder.listFiles();
+			String[] nombres = new String[listOfFiles.length];
+			for (int i=0 ; i<listOfFiles.length; i++) {
+				nombres[i] = listOfFiles[i].getName().substring(0, listOfFiles[i].getName().indexOf(".xml"));
+			}
+			t.agregarDatabase(DBActual, nombres);
+			for (File file : listOfFiles) {
+				if (file.isFile()){
+					File f = new File("DB/"+DBActual+"/"+file.getName());
+					DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+					DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+					Document doc = docBuilder.parse(f);
+					doc.getDocumentElement().normalize();
+					
+					Node nodoRaiz = doc.getDocumentElement();
+					Node modelElement = nodoRaiz.getFirstChild();
+					Node databaseElement = nodoRaiz.getLastChild();
+					
+					String[] columns = new String[modelElement.getChildNodes().getLength()];
+					for (int i=0; i<modelElement.getChildNodes().getLength(); i++){
+						columns[i] = modelElement.getChildNodes().item(i).getNodeName();
+					}
+					t.agregarTabla(file.getName().substring(0, file.getName().indexOf(".xml")), columns, databaseElement.getChildNodes().getLength());
+					for (int i=0; i<databaseElement.getChildNodes().getLength(); i++){
+						Node tActual = databaseElement.getChildNodes().item(i);
+						String[] datos = new String[tActual.getChildNodes().getLength()];
+						for (int j=0; j<tActual.getChildNodes().getLength(); j++){
+							datos[j] = tActual.getChildNodes().item(j).getTextContent();
+						}
+						t.agregarDatosTabla(datos);
+					}
+				}
+			}
+			t.mostrarTabla();
+		}catch(Exception e){e.printStackTrace();}
+		
+		
 		return super.visitShowTables(ctx);
 	}
 
@@ -492,14 +532,20 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 					Node nElement = doc.createElement(ctx.Id(0).getText());
 					if (ctx.literal().size()>0){
 						for (int i=0; i<modelElement.getChildNodes().getLength(); i++){
-							Node meActual = modelElement.getChildNodes().item(i).cloneNode(true);
-							//String t = modelElement.getChildNodes().item(i).getNodeName();
-							//Element meActual = doc.createElement(t);
+							//Node meActual = modelElement.getChildNodes().item(i).cloneNode(true);
+							String t = modelElement.getChildNodes().item(i).getNodeName();
+							Element meActual = doc.createElement(t);
 							for (int j=1; j<ctx.Id().size();j++){
 								if (ctx.Id(j).getText().equals(meActual.getNodeName())){
 									meActual.setTextContent(ctx.literal(i).getText());							
 									nElement.appendChild(meActual);
 									break;
+								}
+								else{
+									if (meActual.getTextContent()!=null){
+										meActual.setTextContent(null);
+										nElement.appendChild(meActual);
+									}
 								}
 							}
 						}
