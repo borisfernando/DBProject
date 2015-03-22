@@ -8,6 +8,7 @@ import java.util.Scanner;
 
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -25,7 +26,6 @@ public class GUI extends JFrame {
 	 */
 	private JPanel contentPane;
 	private String texto;
-	private Scanner scan;
 
 	/**
 	 * Launch the application.
@@ -50,48 +50,90 @@ public class GUI extends JFrame {
 	public GUI() {
 		setResizable(false);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		setBounds(100, 100, 900, 500);
+		setBounds(100, 100, 950, 500);
 		contentPane = new JPanel();
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
 		setContentPane(contentPane);
 		contentPane.setLayout(new BoxLayout(contentPane, BoxLayout.X_AXIS));
 		
-			JPanel panel1 = new JPanel(false);
-			contentPane.add(panel1);
-			
-			JScrollPane consoleScroll = new JScrollPane();
-			consoleScroll.setBounds(10, 10, 750, 430);
-			
-			JTextArea consoleText = new JTextArea();
-			consoleText.setFont(new Font("Courier New", Font.PLAIN, 13));
-			consoleText.setForeground(Color.WHITE);
-			consoleText.setBackground(Color.BLACK);
-			//console.setBounds(5, 5, 442, 438);
-			consoleScroll.setViewportView(consoleText);
-			
-			TextLineNumber lines = new TextLineNumber(consoleText);
-			consoleScroll.setRowHeaderView(lines);
-			
-			PrintStream console =new PrintStream(new TextAreaOutputStream(consoleText));
-			System.setOut(console);
-			System.setErr(console);
-			
-			panel1.setLayout(null);
-			panel1.add(consoleScroll);
-			JButton compilar = new JButton("Compilar");
-			compilar.addActionListener(new ActionListener() {
-				@Override
-				public void actionPerformed(ActionEvent arg0) {
-					scan = new Scanner(System.in);
-					texto = scan.nextLine();
-					Controller compile = new Controller(texto);
-					//System.out.println("esto");
-					//String output = compile.parse(input.getText());
-					//console.setText(output);
+		JPanel panel1 = new JPanel(false);
+		contentPane.add(panel1);
+		panel1.setLayout(null);
+		
+		// Input field
+		JScrollPane inputScroll = new JScrollPane();
+		inputScroll.setBounds(10, 10, 750, 180);
+		
+		JTextArea inputText = new JTextArea();
+		inputText.setFont(new Font("Courier New", Font.PLAIN, 13));
+		
+		inputScroll.setViewportView(inputText);
+		
+		TextLineNumber lines = new TextLineNumber(inputText);
+		inputScroll.setRowHeaderView(lines);
+		
+		panel1.add(inputScroll);
+		
+		// Console field
+		JScrollPane consoleScroll = new JScrollPane();
+		consoleScroll.setBounds(10, 220, 750, 230);
+		
+		JTextArea consoleText = new JTextArea();
+		consoleText.setFont(new Font("Courier New", Font.PLAIN, 13));
+		consoleText.setForeground(Color.WHITE);
+		consoleText.setBackground(Color.BLACK);
+		consoleText.setEditable(false);
+		
+		consoleScroll.setViewportView(consoleText);
+		
+		
+		// Output Stream on console
+		PrintStream console =new PrintStream(new TextAreaOutputStream(consoleText));
+		System.setOut(console);
+		System.setErr(console);
+		
+		panel1.add(consoleScroll);
+		
+		JFileChooser fc = new JFileChooser();
+		JButton cargar = new JButton("Cargar archivo");
+		cargar.addActionListener(new ActionListener() {
+			@Override
+			@SuppressWarnings("resource")
+			public void actionPerformed(ActionEvent arg0) {
+				int returnVal = fc.showOpenDialog(GUI.this);
+				Scanner scan;
+				String programa = "";
+				scan = new Scanner("Sin cargar");
+		        if (returnVal == JFileChooser.APPROVE_OPTION) {
+		            //String file = fc.getSelectedFile();
+		        	try{
+		        		scan = new Scanner(fc.getSelectedFile());
+		        	} catch (Exception e){
+		        		System.out.println("Problema al cargar archivo");
+		        	}
 				}
-			});
-			compilar.setBounds(780, 100, 100, 25);
-			panel1.add(compilar);
+		        while (scan.hasNext()){
+		        	programa += scan.nextLine() + "\n";
+		        }
+		        inputText.setText(programa);
+		        consoleText.setText("");
+			}});
+		
+		cargar.setBounds(776, 54, 129, 25);
+		panel1.add(cargar);
+		
+		JButton compilar = new JButton("Compilar");
+		compilar.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				
+				texto = inputText.getText();
+				Controller compile = new Controller();
+				compile.parse(texto);
+			}
+		});
+		compilar.setBounds(780, 100, 100, 25);
+		panel1.add(compilar);
 	
 	}
 }
