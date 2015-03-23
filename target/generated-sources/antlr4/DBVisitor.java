@@ -11,10 +11,12 @@ import org.w3c.dom.Attr;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
 public class DBVisitor extends GSQLBaseVisitor<String>{
-	public static String DBActual = null;
-	public static String TableActual = null;
+	private static String DBActual = null;
+	private static String TableActual = null;
+	private static int contNumRow = 0;
 	
 	public DBVisitor(){}
 	
@@ -137,6 +139,7 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 	public String visitUseDatabase(GSQLParser.UseDatabaseContext ctx) {
 		if (existDB(new File("DB/"+ctx.Id().getText()))){
 			DBActual = ctx.Id().getText();
+			contNumRow = 0;
 			System.out.println("ACTUALDATABASE: "+DBActual);
 		}
 		else{
@@ -410,6 +413,52 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 	@Override
 	public String visitDeleteFrom(GSQLParser.DeleteFromContext ctx) {
 		// TODO Auto-generated method stub
+		try{
+			if (existDB(new File("DB/"+DBActual))){
+				if (existTable(new File("DB/"+DBActual+"/"+ctx.Id().getText()+".xml"))){
+					File fT = new File("DB/"+DBActual+"/"+ctx.Id().getText()+".xml");
+					DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+					DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+					Document doc = docBuilder.parse(fT);
+					doc.getDocumentElement().normalize();
+					int cont = 0;
+					if (ctx.WHERE() != null){
+						// ACA IRIA POR SI QUISIERAMOS SABER UN VALOR DE UN NODO
+						NodeList nodos = doc.getElementsByTagName("ACA");
+						for (int i=0; i<nodos.getLength(); i++){
+							Node nodoActual = nodos.item(i);
+							//ACA IRIA COMPARAR EL VALOR DE UN NODO
+							if (nodoActual.getTextContent().equals("ACA2")){
+								if (nodoActual.getNodeType() == Node.ELEMENT_NODE) {
+									Element elActual = (Element) nodoActual;
+									
+								}
+							}
+						}
+					}
+					else{
+						Node rootNode = doc.getDocumentElement();
+						cont = rootNode.getLastChild().getChildNodes().getLength();
+						rootNode.removeChild(rootNode.getLastChild());
+						Element databaseElement = doc.createElement("Database");
+						rootNode.appendChild(databaseElement);
+						System.out.println("DELETE ("+cont+").");
+					}
+					TransformerFactory transFact = TransformerFactory.newInstance();
+					Transformer transformer = transFact.newTransformer();
+					DOMSource source = new DOMSource(doc);
+					StreamResult result = new StreamResult(fT);
+					transformer.transform(source,result);
+				}
+				else{
+					System.out.println("Table "+ctx.Id().getText()+" does not exist");
+				}
+			}
+			else{
+				System.out.println("Database "+DBActual+" does not exist.");
+			}
+		}catch(Exception e){e.printStackTrace();}
+		
 		return super.visitDeleteFrom(ctx);
 	}
 
@@ -555,8 +604,8 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 						DOMSource source = new DOMSource(doc);
 						StreamResult result = new StreamResult(fT);
 						transformer.transform(source,result);
-						
-						System.out.println("Correct. Data saved in "+ctx.Id(0).getText());
+						contNumRow++;
+						System.out.println("INSERT("+contNumRow+") con exito.");
 					}
 					
 				}
@@ -653,6 +702,64 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 	@Override
 	public String visitUpdateSet(GSQLParser.UpdateSetContext ctx) {
 		// TODO Auto-generated method stub
+		try{
+			if (existDB(new File("DB/"+DBActual))){
+				if (existTable(new File("DB/"+DBActual+"/"+ctx.Id(0).getText()+".xml"))){
+					File fT = new File("DB/"+DBActual+"/"+ctx.Id(0).getText()+".xml");
+					DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+					DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+					Document doc = docBuilder.parse(fT);
+					doc.getDocumentElement().normalize();
+					int cont = 0;
+					if (ctx.WHERE() != null){
+						// ACA IRIA POR SI QUISIERAMOS SABER UN VALOR DE UN NODO
+						NodeList nodos = doc.getElementsByTagName("ACA");
+						for (int i=0; i<nodos.getLength(); i++){
+							Node nodoActual = nodos.item(i);
+							//ACA IRIA COMPARAR EL VALOR DE UN NODO
+							if (nodoActual.getTextContent().equals("ACA2")){
+								if (nodoActual.getNodeType() == Node.ELEMENT_NODE) {
+									Element elActual = (Element) nodoActual;
+									for (int j=1; j<ctx.Id().size(); j++){
+										NodeList n = elActual.getElementsByTagName(ctx.Id(j).getText());
+										n.item(0).setTextContent(ctx.Char(j-1).getText());
+										cont++;
+									}
+								}
+							}
+						}
+						System.out.println("UPDATE("+cont+") con exito.");
+					}
+					else{
+						for (int i=1; i<ctx.Id().size(); i++){
+							NodeList nodos = doc.getElementsByTagName(ctx.Id(i).getText());
+							if (nodos.getLength()!=0){
+								for (int j=1; j<nodos.getLength(); j++){
+									nodos.item(j).setTextContent(ctx.Char(i-1).getText());
+									cont++;
+								}
+							}
+							else{
+								System.out.println("Id "+ctx.Id(i).getText()+" does not exist in table "+ctx.Id(0).getText());
+							}
+						}
+						System.out.println("UPDATE("+cont+") con exito.");
+					}
+					
+					TransformerFactory transFact = TransformerFactory.newInstance();
+					Transformer transformer = transFact.newTransformer();
+					DOMSource source = new DOMSource(doc);
+					StreamResult result = new StreamResult(fT);
+					transformer.transform(source,result);
+				}
+				else{
+					System.out.println("Table "+ctx.Id(0).getText()+" does not exist");
+				}
+			}
+			else{
+				System.out.println("Database "+DBActual+" does not exist.");
+			}
+		}catch(Exception e){e.printStackTrace();}
 		return super.visitUpdateSet(ctx);
 	}
 

@@ -217,7 +217,7 @@ updateSet
 	;
 
 deleteFrom
-	:	DELETE FROM Id WHERE expression
+	:	DELETE FROM Id (WHERE expression)?
 	;
 	
 selectFrom

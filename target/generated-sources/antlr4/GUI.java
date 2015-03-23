@@ -61,10 +61,10 @@ public class GUI extends JFrame {
 		panel1.setLayout(null);
 		
 		// Input field
-		JScrollPane inputScroll = new JScrollPane();
+		final JScrollPane inputScroll = new JScrollPane();
 		inputScroll.setBounds(10, 10, 750, 180);
 		
-		JTextArea inputText = new JTextArea();
+		final JTextArea inputText = new JTextArea();
 		inputText.setFont(new Font("Courier New", Font.PLAIN, 13));
 		
 		inputScroll.setViewportView(inputText);
@@ -75,10 +75,10 @@ public class GUI extends JFrame {
 		panel1.add(inputScroll);
 		
 		// Console field
-		JScrollPane consoleScroll = new JScrollPane();
+		final JScrollPane consoleScroll = new JScrollPane();
 		consoleScroll.setBounds(10, 220, 750, 230);
 		
-		JTextArea consoleText = new JTextArea();
+		final JTextArea consoleText = new JTextArea();
 		consoleText.setFont(new Font("Courier New", Font.PLAIN, 13));
 		consoleText.setForeground(Color.WHITE);
 		consoleText.setBackground(Color.BLACK);
@@ -94,7 +94,7 @@ public class GUI extends JFrame {
 		
 		panel1.add(consoleScroll);
 		
-		JFileChooser fc = new JFileChooser();
+		final JFileChooser fc = new JFileChooser();
 		JButton cargar = new JButton("Cargar archivo");
 		cargar.addActionListener(new ActionListener() {
 			@Override
