@@ -209,7 +209,7 @@ char_literal
 	;
 	
 insertInto	
-	:	INSERT INTO Id ('('(Id(',' Id)*)? ')')? VALUES '(' (literal (',' literal)*)? ')'
+	:	INSERT INTO Id ('('(Id(',' Id)*)? ')')? VALUES '(' (literal (',' literal)*) ')'
 	;
 	
 updateSet

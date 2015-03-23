@@ -1,5 +1,7 @@
 import java.io.File;
+import java.util.Scanner;
 
+import javax.swing.JOptionPane;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.transform.Transformer;
@@ -17,48 +19,9 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 	private static String DBActual = null;
 	private static String TableActual = null;
 	private static int contNumRow = 0;
+	private XmlMethods x;
 	
-	public DBVisitor(){}
-	
-	/*
-	 * Method: existDB
-	 * Parameter: File f
-	 * Return: boolean bExisteArchivo
-	 * Use: returns true if theres an existing database, else otherwise
-	 */
-	public static boolean existDB(File f){
-		boolean bExist = false;
-		File folder = new File("DB/");
-		File[] listOfFiles = folder.listFiles();
-
-		for (File file : listOfFiles) {
-	        if (file.compareTo(f)==0){
-	        	bExist = true;
-	        }
-		}
-		return bExist;
-	}
-	
-	/*
-	 * Method: existTable
-	 * Parameter: String table
-	 * Return: boolean bExisteTable
-	 * Use: returns true if there is an existing table, else otherwise
-	 */
-	public static boolean existTable(File table){
-		boolean bExist = false; 
-		File f = new File("DB/"+DBActual+"/");
-		File[] listOfFiles = f.listFiles();
-
-		for (File file : listOfFiles) {
-			if (file.isFile()){
-				if (file.compareTo(table)==0){
-					bExist = true;
-				}
-			}
-		}
-		return bExist;
-	}
+	public DBVisitor(){x = new XmlMethods();}
 	
 	/*
 	 * Method: returnDBActual
@@ -98,8 +61,10 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 	public String visitCreateDatabase(GSQLParser.CreateDatabaseContext ctx) {
 		try{
 			File fNew = new File("DB/"+ctx.Id().getText());
-			if (!existDB(fNew)){
+			if (!x.existDB(ctx.Id().getText())){
 				fNew.mkdir();
+				x.addMetadataD(ctx.Id().getText());
+				x.createMetadataT(ctx.Id().getText());
 				System.out.println("Database "+ctx.Id().getText()+" Created!");
 			}
 			else{
@@ -115,10 +80,11 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 		try{
 			File f = new File("DB/"+ctx.Id(0).getText());
 			File fNew = new File("DB/"+ctx.Id(1).getText());
-			boolean bExiste1 = existDB(f);
-			boolean bExiste2 = existDB(fNew);
+			boolean bExiste1 = x.existDB(ctx.Id(0).getText());
+			boolean bExiste2 = x.existDB(ctx.Id(1).getText());
 			
 			if (bExiste1 && !bExiste2){
+				x.changeNameD(ctx.Id(0).getText(), ctx.Id(1).getText());
 				f.renameTo(fNew);
 				f.getParentFile().mkdirs();
 				System.out.println("Corret. Database name "+ctx.Id(0).getText()+", changed to "+ctx.Id(1).getText()+".");
@@ -137,7 +103,7 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 	
 	@Override
 	public String visitUseDatabase(GSQLParser.UseDatabaseContext ctx) {
-		if (existDB(new File("DB/"+ctx.Id().getText()))){
+		if (x.existDB(ctx.Id().getText())){
 			DBActual = ctx.Id().getText();
 			contNumRow = 0;
 			System.out.println("ACTUALDATABASE: "+DBActual);
@@ -152,11 +118,16 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 	public String visitDropDatabase(GSQLParser.DropDatabaseContext ctx) {
 		try{
 			File f = new File("DB/"+ctx.Id().getText());
-			if (existDB(f)){
-				if (deleteDirectory(f))
-					System.out.println("Database "+ctx.Id().getText()+" deleted.");
-				else
-					System.out.println("Deleting database "+ctx.Id().getText()+" has found an error.");
+			if (x.existDB(ctx.Id().getText())){
+				int[] valores = x.getCant(ctx.Id().getText());
+				String op = JOptionPane.showInputDialog(null, "¿Borrar base de datos "+ctx.Id().getText()+" con "+valores[0]+" tablas y "+valores[1]+" registros? (S/N)");
+				if (op.equals("S") || op.equals("s")){
+					x.deleteDatabase(ctx.Id().getText());
+					if (deleteDirectory(f))
+						System.out.println("Database "+ctx.Id().getText()+" deleted.");
+					else
+						System.out.println("Deleting database "+ctx.Id().getText()+" has found an error.");
+				}
 			}
 			else{
 				System.out.println("Database "+ctx.Id().getText()+" not exist.");
@@ -169,10 +140,9 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 	public String visitCreateTable(GSQLParser.CreateTableContext ctx) {
 		// TODO Auto-generated method stub
 		try{
-			File f = new File("DB/"+DBActual+"/");
-			if (existDB(f)){
+			if (x.existDB(DBActual)){
 				File fT = new File("DB/"+DBActual+"/"+ctx.Id(0).getText()+".xml");
-				if (!existTable(fT)){
+				if (!x.existTable(DBActual,ctx.Id(0).getText())){
 					DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
 					DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
 					Document doc = docBuilder.newDocument();
@@ -216,6 +186,9 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 					transformer.transform(source, result);
 					fT.getParentFile().mkdirs(); 
 					fT.createNewFile();
+					
+					x.addMetadataT(DBActual,ctx.Id(0).getText());
+					x.modifyDatabase(DBActual, "Tables");
 					System.out.println("Correct. Table name "+ctx.Id(0).getText()+" added to database "+DBActual+".");
 				}
 				else{
@@ -234,8 +207,8 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 		try{
 			File fD = new File("DB/"+DBActual);
 			File f = new File("DB/"+DBActual+"/"+ctx.Id(0).getText()+".xml");
-			if (existDB(fD)){
-				if (existTable(f)){
+			if (x.existDB(DBActual)){
+				if (x.existTable(DBActual,ctx.Id(0).getText())){
 					File fN = new File("DB/"+DBActual+"/"+ctx.Id(1).getText()+".xml");
 					DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
 					DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
@@ -256,7 +229,7 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 					transformer.transform(source, result);
 					f.renameTo(fN);
 					f.getParentFile().mkdirs();
-					
+					DBActual = x.changeNameT(DBActual,ctx.Id(0).getText(),ctx.Id(1).getText());
 					System.out.println("Corret. Table name "+ctx.Id(0).getText()+", changed to "+ctx.Id(1).getText()+".");
 				}
 				else{
@@ -269,8 +242,8 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 	
 	@Override
 	public String visitActionAlterTable(GSQLParser.ActionAlterTableContext ctx) {
-		if (existDB(new File("DB/"+DBActual))){
-			if (existTable(new File("DB/"+DBActual+"/"+ctx.Id().getText()+".xml"))){
+		if (x.existDB(DBActual)){
+			if (x.existTable(DBActual,ctx.Id().getText())){
 				TableActual = ctx.Id().getText();
 				super.visitActionAlterTable(ctx);
 			}
@@ -379,7 +352,10 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 		// FALTA REVISAR LAS REFERENCIAS PARA PODER ELIMINAR POR COMPLETO LA TABLA
 		try{
 			File f = new File("DB/"+DBActual+"/"+ctx.Id().getText()+".xml");
-			if (existTable(f)){
+			if (x.existTable(DBActual,ctx.Id().getText())){
+				//x.deleteDatabase(ctx.Id().getText());
+				x.deleteTable(DBActual, ctx.Id().getText());
+				
 				if (f.delete())
 					System.out.println("Database "+ctx.Id().getText()+" deleted.");
 				else
@@ -414,8 +390,8 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 	public String visitDeleteFrom(GSQLParser.DeleteFromContext ctx) {
 		// TODO Auto-generated method stub
 		try{
-			if (existDB(new File("DB/"+DBActual))){
-				if (existTable(new File("DB/"+DBActual+"/"+ctx.Id().getText()+".xml"))){
+			if (x.existDB(DBActual)){
+				if (x.existTable(DBActual,ctx.Id().getText())){
 					File fT = new File("DB/"+DBActual+"/"+ctx.Id().getText()+".xml");
 					DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
 					DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
@@ -493,13 +469,17 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 			Table t = new Table();
 			File folder = new File("DB/"+DBActual+"/");
 			File[] listOfFiles = folder.listFiles();
-			String[] nombres = new String[listOfFiles.length];
+			String[] nombres = new String[listOfFiles.length-1];
+			int contadorN = 0;
 			for (int i=0 ; i<listOfFiles.length; i++) {
-				nombres[i] = listOfFiles[i].getName().substring(0, listOfFiles[i].getName().indexOf(".xml"));
+				if (!listOfFiles[i].getName().contains(".md")){
+					nombres[contadorN] = listOfFiles[i].getName().substring(0, listOfFiles[i].getName().indexOf(".xml"));
+					contadorN++;
+				}
 			}
 			t.agregarDatabase(DBActual, nombres);
 			for (File file : listOfFiles) {
-				if (file.isFile()){
+				if (file.isFile() && !file.getName().contains(".md")){
 					File f = new File("DB/"+DBActual+"/"+file.getName());
 					DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
 					DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
@@ -566,9 +546,9 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 	public String visitInsertInto(GSQLParser.InsertIntoContext ctx) {
 		// TODO Auto-generated method stub
 		try{
-			if (existDB(new File("DB/"+DBActual))){
+			if (x.existDB(DBActual)){
 				File fT = new File("DB/"+DBActual+"/"+ctx.Id(0).getText()+".xml");
-				if (existTable(fT)){
+				if (x.existTable(DBActual,ctx.Id(0).getText())){
 					DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
 					DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
 					Document doc = docBuilder.parse(fT);
@@ -604,7 +584,8 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 						DOMSource source = new DOMSource(doc);
 						StreamResult result = new StreamResult(fT);
 						transformer.transform(source,result);
-						contNumRow++;
+						contNumRow = x.modifyTable(DBActual, ctx.Id(0).getText())+1;
+						x.modifyDatabase(DBActual, "Records");
 						System.out.println("INSERT("+contNumRow+") con exito.");
 					}
 					
@@ -703,8 +684,8 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 	public String visitUpdateSet(GSQLParser.UpdateSetContext ctx) {
 		// TODO Auto-generated method stub
 		try{
-			if (existDB(new File("DB/"+DBActual))){
-				if (existTable(new File("DB/"+DBActual+"/"+ctx.Id(0).getText()+".xml"))){
+			if (x.existDB(DBActual)){
+				if (x.existTable(DBActual,ctx.Id(0).getText())){
 					File fT = new File("DB/"+DBActual+"/"+ctx.Id(0).getText()+".xml");
 					DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
 					DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
