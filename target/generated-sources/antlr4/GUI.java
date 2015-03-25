@@ -26,6 +26,8 @@ public class GUI extends JFrame {
 	 */
 	private JPanel contentPane;
 	private String texto;
+	private Controller compile;
+	String textito = "";
 
 	/**
 	 * Launch the application.
@@ -48,6 +50,7 @@ public class GUI extends JFrame {
 	 * Create the frame.
 	 */
 	public GUI() {
+		compile = new Controller();
 		setResizable(false);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setBounds(100, 100, 950, 500);
@@ -100,6 +103,7 @@ public class GUI extends JFrame {
 			@Override
 			@SuppressWarnings("resource")
 			public void actionPerformed(ActionEvent arg0) {
+				textito = "";
 				int returnVal = fc.showOpenDialog(GUI.this);
 				Scanner scan;
 				String programa = "";
@@ -114,6 +118,7 @@ public class GUI extends JFrame {
 				}
 		        while (scan.hasNext()){
 		        	programa += scan.nextLine() + "\n";
+		        	//textito += scan.nextLine();
 		        }
 		        inputText.setText(programa);
 		        consoleText.setText("");
@@ -126,14 +131,30 @@ public class GUI extends JFrame {
 		compilar.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
-				
+				long iniciale = System.currentTimeMillis();
 				texto = inputText.getText();
-				Controller compile = new Controller();
+				compile = new Controller();
 				compile.parse(texto);
+				//compile.parse(textito);
+				long finale = System.currentTimeMillis();
+				//System.out.println(TimeUnit.MILLISECONDS.toSeconds(finale - iniciale));
 			}
 		});
 		compilar.setBounds(780, 100, 100, 25);
 		panel1.add(compilar);
+		
+		JButton update = new JButton("Update");
+		update.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				String database = DBVisitor.returnDBActual();
+				Xml.guardarDatabase(database, compile.getHm());
+				Xml.updateDatabases();
+				
+			}
+		});
+		update.setBounds(780, 140, 100, 25);
+		panel1.add(update);
 	
 	}
 }

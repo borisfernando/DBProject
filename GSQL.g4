@@ -55,6 +55,10 @@ Char : '\'' (AnyAll)* '\'' ;
 Comments: '//' ~('\r' | '\n' )*  -> channel(HIDDEN);
 WhitespaceDeclaration : [\t\r\n\f ]+ -> skip ;
 
+program
+	:	database ';' (database ';')* 
+	;
+
 database
 	:	createDatabase
 	|	alterDatabase
@@ -65,23 +69,23 @@ database
 	;
 
 createDatabase
-	:	CREATE DATABASE Id ';'
+	:	CREATE DATABASE Id 
 	;
 
 alterDatabase
-	:	ALTER DATABASE Id RENAME TO Id ';'
+	:	ALTER DATABASE Id RENAME TO Id 
 	;
 	
 dropDatabase
-	:	DROP DATABASE Id ';'
+	:	DROP DATABASE Id 
 	;
 	
 useDatabase
-	:	USE DATABASE Id ';'
+	:	USE DATABASE Id 
 	;
 	
 showDatabase
-	:	SHOW DATABASES ';'
+	:	SHOW DATABASES
 	;
 	
 tableInstruction
@@ -97,7 +101,7 @@ tableInstruction
 	|	insertInto
 	|	updateSet
 	|	deleteFrom
-	|	selectFrom ) ';'
+	|	selectFrom ) 
 	;
 		
 createTable

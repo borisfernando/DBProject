@@ -94,6 +94,7 @@ public class Table {
 					int numT = nameTable.indexOf(nombre);
 	                String[] columnNames = allColumn.get(numT);
 	                String[][] data = allData.get(numT);
+	                System.out.println(data.length);
 	                
 	                JTable table = new JTable(data,columnNames);
 	                table.setPreferredScrollableViewportSize(new Dimension(1000, 70));

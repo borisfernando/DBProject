@@ -1,5 +1,6 @@
 import java.io.File;
-import java.util.Scanner;
+
+import java.util.HashMap;
 
 import javax.swing.JOptionPane;
 import javax.xml.parsers.DocumentBuilder;
@@ -16,12 +17,18 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 public class DBVisitor extends GSQLBaseVisitor<String>{
-	private static String DBActual = null;
-	private static String TableActual = null;
+	private static String DBActual = "";
+	private static String TableActual = "";
 	private static int contNumRow = 0;
-	private XmlMethods x;
+	private HashMap<String, Type> hm;
+	private static HashMap<String, Document> hmDatabase;
 	
-	public DBVisitor(){x = new XmlMethods();}
+	public DBVisitor(){
+		Xml.createMetadataD();
+		hm = new HashMap<String, Type>();
+		hm.put("int", new VarType("int"));
+		hm.put("float", new VarType("float"));
+	}
 	
 	/*
 	 * Method: returnDBActual
@@ -29,7 +36,7 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 	 * Return: String DBActual
 	 * Use: returns the actual database to be working at
 	 */
-	public String returnDBActual(){
+	public static String returnDBActual(){
 		return DBActual;
 	}
 	
@@ -58,13 +65,19 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 	}
 	
 	@Override
+	public String visitProgram(GSQLParser.ProgramContext ctx) {
+		// TODO Auto-generated method stub
+		return super.visitProgram(ctx);
+	}
+
+	@Override
 	public String visitCreateDatabase(GSQLParser.CreateDatabaseContext ctx) {
 		try{
 			File fNew = new File("DB/"+ctx.Id().getText());
-			if (!x.existDB(ctx.Id().getText())){
+			if (!Xml.existDB(ctx.Id().getText())){
 				fNew.mkdir();
-				x.addMetadataD(ctx.Id().getText());
-				x.createMetadataT(ctx.Id().getText());
+				Xml.addMetadataD(ctx.Id().getText());
+				Xml.createMetadataT(ctx.Id().getText());
 				System.out.println("Database "+ctx.Id().getText()+" Created!");
 			}
 			else{
@@ -80,11 +93,11 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 		try{
 			File f = new File("DB/"+ctx.Id(0).getText());
 			File fNew = new File("DB/"+ctx.Id(1).getText());
-			boolean bExiste1 = x.existDB(ctx.Id(0).getText());
-			boolean bExiste2 = x.existDB(ctx.Id(1).getText());
+			boolean bExiste1 = Xml.existDB(ctx.Id(0).getText());
+			boolean bExiste2 = Xml.existDB(ctx.Id(1).getText());
 			
 			if (bExiste1 && !bExiste2){
-				x.changeNameD(ctx.Id(0).getText(), ctx.Id(1).getText());
+				Xml.changeNameD(ctx.Id(0).getText(), ctx.Id(1).getText());
 				f.renameTo(fNew);
 				f.getParentFile().mkdirs();
 				System.out.println("Corret. Database name "+ctx.Id(0).getText()+", changed to "+ctx.Id(1).getText()+".");
@@ -103,7 +116,22 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 	
 	@Override
 	public String visitUseDatabase(GSQLParser.UseDatabaseContext ctx) {
-		if (x.existDB(ctx.Id().getText())){
+		if (Xml.existDB(ctx.Id().getText())){
+			if (DBActual != ""){
+				Xml.guardarDatabase(DBActual, hmDatabase);
+			}
+			hmDatabase = new HashMap<String, Document>();
+			File folder = new File("DB/"+ctx.Id().getText()+"/");
+			File[] filesInFolder = folder.listFiles();
+			
+			for (int i=0; i<filesInFolder.length; i++){
+				if (filesInFolder[i].isFile() && filesInFolder[i].getName().contains(".xml")){
+					String nombre = filesInFolder[i].getName();
+					String nombreC = nombre.substring(0, filesInFolder[i].getName().indexOf(".xml"));
+					hmDatabase.put(nombreC, Xml.getElementByName(filesInFolder[i]));
+				}
+			}
+			
 			DBActual = ctx.Id().getText();
 			contNumRow = 0;
 			System.out.println("ACTUALDATABASE: "+DBActual);
@@ -118,11 +146,11 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 	public String visitDropDatabase(GSQLParser.DropDatabaseContext ctx) {
 		try{
 			File f = new File("DB/"+ctx.Id().getText());
-			if (x.existDB(ctx.Id().getText())){
-				int[] valores = x.getCant(ctx.Id().getText());
+			if (Xml.existDB(ctx.Id().getText())){
+				int[] valores = Xml.getCant(ctx.Id().getText());
 				String op = JOptionPane.showInputDialog(null, "¿Borrar base de datos "+ctx.Id().getText()+" con "+valores[0]+" tablas y "+valores[1]+" registros? (S/N)");
 				if (op.equals("S") || op.equals("s")){
-					x.deleteDatabase(ctx.Id().getText());
+					Xml.deleteDatabase(ctx.Id().getText());
 					if (deleteDirectory(f))
 						System.out.println("Database "+ctx.Id().getText()+" deleted.");
 					else
@@ -140,9 +168,9 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 	public String visitCreateTable(GSQLParser.CreateTableContext ctx) {
 		// TODO Auto-generated method stub
 		try{
-			if (x.existDB(DBActual)){
+			if (Xml.existDB(DBActual)){
 				File fT = new File("DB/"+DBActual+"/"+ctx.Id(0).getText()+".xml");
-				if (!x.existTable(DBActual,ctx.Id(0).getText())){
+				if (!Xml.existTable(DBActual,ctx.Id(0).getText())){
 					DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
 					DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
 					Document doc = docBuilder.newDocument();
@@ -178,6 +206,8 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 					rootElement.appendChild(databaseElement);
 					doc.appendChild(rootElement);
 					
+					hmDatabase.put(ctx.Id(0).getText(),doc);
+					
 					// Write the content into xml file
 					TransformerFactory transformerFactory = TransformerFactory.newInstance();
 					Transformer transformer = transformerFactory.newTransformer();
@@ -187,8 +217,8 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 					fT.getParentFile().mkdirs(); 
 					fT.createNewFile();
 					
-					x.addMetadataT(DBActual,ctx.Id(0).getText());
-					x.modifyDatabase(DBActual, "Tables");
+					Xml.addMetadataT(DBActual,ctx.Id(0).getText());
+					Xml.modifyDatabase(DBActual, "Tables");
 					System.out.println("Correct. Table name "+ctx.Id(0).getText()+" added to database "+DBActual+".");
 				}
 				else{
@@ -205,10 +235,9 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 	@Override
 	public String visitRenameAlterTable(GSQLParser.RenameAlterTableContext ctx) {
 		try{
-			File fD = new File("DB/"+DBActual);
 			File f = new File("DB/"+DBActual+"/"+ctx.Id(0).getText()+".xml");
-			if (x.existDB(DBActual)){
-				if (x.existTable(DBActual,ctx.Id(0).getText())){
+			if (Xml.existDB(DBActual)){
+				if (Xml.existTable(DBActual,ctx.Id(0).getText())){
 					File fN = new File("DB/"+DBActual+"/"+ctx.Id(1).getText()+".xml");
 					DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
 					DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
@@ -229,7 +258,7 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 					transformer.transform(source, result);
 					f.renameTo(fN);
 					f.getParentFile().mkdirs();
-					DBActual = x.changeNameT(DBActual,ctx.Id(0).getText(),ctx.Id(1).getText());
+					DBActual = Xml.changeNameT(DBActual,ctx.Id(0).getText(),ctx.Id(1).getText());
 					System.out.println("Corret. Table name "+ctx.Id(0).getText()+", changed to "+ctx.Id(1).getText()+".");
 				}
 				else{
@@ -242,8 +271,8 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 	
 	@Override
 	public String visitActionAlterTable(GSQLParser.ActionAlterTableContext ctx) {
-		if (x.existDB(DBActual)){
-			if (x.existTable(DBActual,ctx.Id().getText())){
+		if (Xml.existDB(DBActual)){
+			if (Xml.existTable(DBActual,ctx.Id().getText())){
 				TableActual = ctx.Id().getText();
 				super.visitActionAlterTable(ctx);
 			}
@@ -352,9 +381,9 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 		// FALTA REVISAR LAS REFERENCIAS PARA PODER ELIMINAR POR COMPLETO LA TABLA
 		try{
 			File f = new File("DB/"+DBActual+"/"+ctx.Id().getText()+".xml");
-			if (x.existTable(DBActual,ctx.Id().getText())){
+			if (Xml.existTable(DBActual,ctx.Id().getText())){
 				//x.deleteDatabase(ctx.Id().getText());
-				x.deleteTable(DBActual, ctx.Id().getText());
+				Xml.deleteTable(DBActual, ctx.Id().getText());
 				
 				if (f.delete())
 					System.out.println("Database "+ctx.Id().getText()+" deleted.");
@@ -390,12 +419,9 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 	public String visitDeleteFrom(GSQLParser.DeleteFromContext ctx) {
 		// TODO Auto-generated method stub
 		try{
-			if (x.existDB(DBActual)){
-				if (x.existTable(DBActual,ctx.Id().getText())){
-					File fT = new File("DB/"+DBActual+"/"+ctx.Id().getText()+".xml");
-					DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
-					DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
-					Document doc = docBuilder.parse(fT);
+			if (Xml.existDB(DBActual)){
+				if (Xml.existTable(DBActual,ctx.Id().getText())){
+					Document doc = hmDatabase.get(ctx.Id().getText());
 					doc.getDocumentElement().normalize();
 					int cont = 0;
 					if (ctx.WHERE() != null){
@@ -420,11 +446,6 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 						rootNode.appendChild(databaseElement);
 						System.out.println("DELETE ("+cont+").");
 					}
-					TransformerFactory transFact = TransformerFactory.newInstance();
-					Transformer transformer = transFact.newTransformer();
-					DOMSource source = new DOMSource(doc);
-					StreamResult result = new StreamResult(fT);
-					transformer.transform(source,result);
 				}
 				else{
 					System.out.println("Table "+ctx.Id().getText()+" does not exist");
@@ -546,49 +567,33 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 	public String visitInsertInto(GSQLParser.InsertIntoContext ctx) {
 		// TODO Auto-generated method stub
 		try{
-			if (x.existDB(DBActual)){
-				File fT = new File("DB/"+DBActual+"/"+ctx.Id(0).getText()+".xml");
-				if (x.existTable(DBActual,ctx.Id(0).getText())){
-					DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
-					DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
-					Document doc = docBuilder.parse(fT);
+			if (Xml.existDB(DBActual)){
+				if (Xml.existTable(DBActual,ctx.Id(0).getText())){
+					Document doc = hmDatabase.get(ctx.Id(0).getText());
 					doc.getDocumentElement().normalize();
 					
-					Node nodoRaiz = doc.getDocumentElement();
+					Element nodoRaiz = doc.getDocumentElement();
 					Node modelElement = nodoRaiz.getFirstChild();
 					Node databaseElement = nodoRaiz.getLastChild();
 					
-					Node nElement = doc.createElement(ctx.Id(0).getText());
+					Element elementA = doc.createElement(ctx.Id(0).getText());
 					if (ctx.literal().size()>0){
 						for (int i=0; i<modelElement.getChildNodes().getLength(); i++){
-							//Node meActual = modelElement.getChildNodes().item(i).cloneNode(true);
-							String t = modelElement.getChildNodes().item(i).getNodeName();
-							Element meActual = doc.createElement(t);
-							for (int j=1; j<ctx.Id().size();j++){
-								if (ctx.Id(j).getText().equals(meActual.getNodeName())){
-									meActual.setTextContent(ctx.literal(i).getText());							
-									nElement.appendChild(meActual);
-									break;
-								}
-								else{
-									if (meActual.getTextContent()!=null){
-										meActual.setTextContent(null);
-										nElement.appendChild(meActual);
-									}
-								}
-							}
+							Node n = doc.createElement(modelElement.getChildNodes().item(i).getNodeName());
+							elementA.appendChild(n);
 						}
-						databaseElement.appendChild(nElement);
-						TransformerFactory transFact = TransformerFactory.newInstance();
-						Transformer transformer = transFact.newTransformer();
-						DOMSource source = new DOMSource(doc);
-						StreamResult result = new StreamResult(fT);
-						transformer.transform(source,result);
-						contNumRow = x.modifyTable(DBActual, ctx.Id(0).getText())+1;
-						x.modifyDatabase(DBActual, "Records");
-						System.out.println("INSERT("+contNumRow+") con exito.");
+						for (int i=1; i<ctx.Id().size(); i++){
+							NodeList nodos = elementA.getElementsByTagName(ctx.Id(i).getText());
+							nodos.item(0).setTextContent(ctx.literal(i-1).getText());	
+						}
+						databaseElement.appendChild(elementA);
+						
+						contNumRow = Xml.modifyTable(DBActual, ctx.Id(0).getText())+1;
+						Xml.modifyDatabase(DBActual, "Records");
+						//System.out.println("INSERT("+contNumRow+") con exito.");
 					}
 					
+					hmDatabase.put(ctx.Id(0).getText(), doc);
 				}
 				else{
 					System.out.println("Table "+ctx.Id(0).getText()+" does not exist in database "+DBActual+".");
@@ -684,12 +689,9 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 	public String visitUpdateSet(GSQLParser.UpdateSetContext ctx) {
 		// TODO Auto-generated method stub
 		try{
-			if (x.existDB(DBActual)){
-				if (x.existTable(DBActual,ctx.Id(0).getText())){
-					File fT = new File("DB/"+DBActual+"/"+ctx.Id(0).getText()+".xml");
-					DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
-					DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
-					Document doc = docBuilder.parse(fT);
+			if (Xml.existDB(DBActual)){
+				if (Xml.existTable(DBActual,ctx.Id(0).getText())){
+					Document doc = hmDatabase.get(ctx.Id(0).getText());
 					doc.getDocumentElement().normalize();
 					int cont = 0;
 					if (ctx.WHERE() != null){
@@ -726,12 +728,6 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 						}
 						System.out.println("UPDATE("+cont+") con exito.");
 					}
-					
-					TransformerFactory transFact = TransformerFactory.newInstance();
-					Transformer transformer = transFact.newTransformer();
-					DOMSource source = new DOMSource(doc);
-					StreamResult result = new StreamResult(fT);
-					transformer.transform(source,result);
 				}
 				else{
 					System.out.println("Table "+ctx.Id(0).getText()+" does not exist");
@@ -755,5 +751,13 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 		// TODO Auto-generated method stub
 		return super.visitLiteral(ctx);
 	}
-
+	
+	public HashMap<String, Document> getHMDatabase(){
+		return hmDatabase;
+	}
+	
+	public void setHMDatabase(HashMap<String, Document> hmDatabase){
+		this.hmDatabase = hmDatabase;
+	}
+	
 }
