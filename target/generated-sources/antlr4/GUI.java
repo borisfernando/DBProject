@@ -3,13 +3,18 @@ import java.awt.EventQueue;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowListener;
 import java.io.PrintStream;
 import java.util.Scanner;
+import java.util.concurrent.TimeUnit;
 
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
@@ -25,9 +30,9 @@ public class GUI extends JFrame {
 	 * 
 	 */
 	private JPanel contentPane;
-	private String texto;
-	private Controller compile;
-	String textito = "";
+	private String texto="";
+	private static Controller compile;
+	private boolean bProgram = false;
 
 	/**
 	 * Launch the application.
@@ -37,7 +42,20 @@ public class GUI extends JFrame {
 			@Override
 			public void run() {
 				try {
+					compile = new Controller();
 					GUI frame = new GUI();
+					WindowListener exitListener = new WindowAdapter() {
+			            @Override
+			            public void windowClosing(WindowEvent e) {
+			                int confirm = JOptionPane.showOptionDialog(null, "¿Desea guardar los cambios antes de salir?", "Exit Confirmation", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, null, null);
+			                if (confirm == 0) {
+			                	String database = DBVisitor.returnDBActual();
+			                	Xml.guardarDatabase(database, compile.getHm());
+			                	System.exit(0);
+			                }
+			            }
+			        };
+					frame.addWindowListener(exitListener);
 					frame.setVisible(true);
 				} catch (Exception e) {
 					e.printStackTrace();
@@ -98,12 +116,12 @@ public class GUI extends JFrame {
 		panel1.add(consoleScroll);
 		
 		final JFileChooser fc = new JFileChooser();
-		JButton cargar = new JButton("Cargar archivo");
+		final JButton cargar = new JButton("Cargar archivo");
+		final JButton update = new JButton("Update");
 		cargar.addActionListener(new ActionListener() {
 			@Override
 			@SuppressWarnings("resource")
 			public void actionPerformed(ActionEvent arg0) {
-				textito = "";
 				int returnVal = fc.showOpenDialog(GUI.this);
 				Scanner scan;
 				String programa = "";
@@ -116,12 +134,21 @@ public class GUI extends JFrame {
 		        		System.out.println("Problema al cargar archivo");
 		        	}
 				}
+		        bProgram = false;
 		        while (scan.hasNext()){
 		        	programa += scan.nextLine() + "\n";
-		        	//textito += scan.nextLine();
 		        }
-		        inputText.setText(programa);
-		        consoleText.setText("");
+		        System.out.println("Archivo cargado exitosamente.");
+		        if (programa.length()<20000)
+		        	inputText.setText(programa);
+		        else{
+		        	bProgram = true;
+		        	texto = programa;
+		        	inputText.setText("Archivo muy grande para mostrarlo en este editor.");
+		        	inputText.setEditable(false);
+		        	cargar.setEnabled(false);
+		        	update.setEnabled(false);
+		        }
 			}});
 		
 		cargar.setBounds(776, 54, 129, 25);
@@ -132,29 +159,47 @@ public class GUI extends JFrame {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
 				long iniciale = System.currentTimeMillis();
-				texto = inputText.getText();
+				if (!bProgram)
+					texto = inputText.getText();
 				compile = new Controller();
 				compile.parse(texto);
-				//compile.parse(textito);
 				long finale = System.currentTimeMillis();
-				//System.out.println(TimeUnit.MILLISECONDS.toSeconds(finale - iniciale));
+				System.out.println("MEMORIA: "+TimeUnit.MILLISECONDS.toSeconds(finale - iniciale));
+				inputText.setEditable(true);
 			}
 		});
 		compilar.setBounds(780, 100, 100, 25);
 		panel1.add(compilar);
 		
-		JButton update = new JButton("Update");
 		update.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
+				long iniciale = System.currentTimeMillis();
 				String database = DBVisitor.returnDBActual();
 				Xml.guardarDatabase(database, compile.getHm());
 				Xml.updateDatabases();
+				long finale = System.currentTimeMillis();
+				System.out.println("GUARDAR "+TimeUnit.MILLISECONDS.toSeconds(finale - iniciale));
 				
 			}
 		});
 		update.setBounds(780, 140, 100, 25);
 		panel1.add(update);
-	
+		
+		JButton reset = new JButton("Reset");
+		reset.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				inputText.setEditable(true);
+				inputText.setText("");
+				consoleText.setText("");
+				cargar.setEnabled(true);
+	        	update.setEnabled(true);
+	        	bProgram = false;
+			}
+		});
+		reset.setBounds(780, 180, 110, 25);
+		panel1.add(reset);
+		
 	}
 }

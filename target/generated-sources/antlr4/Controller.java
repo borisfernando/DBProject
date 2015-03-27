@@ -1,4 +1,7 @@
 import java.util.HashMap;
+import java.util.concurrent.Future;
+
+import javax.swing.JDialog;
 
 import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -20,6 +23,7 @@ public class Controller {
 		CommonTokenStream tokens = new CommonTokenStream(lexer);
 		GSQLParser parser = new GSQLParser(tokens);
 		//Future<JDialog> tree2 = parser.database().inspect(parser);
+		//parser.reset();
 		ParseTree tree = parser.program();
 		DBVisitor visitor = new DBVisitor();
 		visitor.visit(tree);

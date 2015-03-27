@@ -9,6 +9,7 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
+import org.w3c.dom.Attr;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -35,6 +36,49 @@ public class Xml {
 			doc = docBuilder.parse(f);
 		}catch(Exception e){}
 		return doc;
+	}
+	
+	public static boolean existColumnInTable(File fT, String column){
+		boolean retorno = true;
+		try{
+			DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+			DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+			Document doc = docBuilder.parse(fT);
+			doc.getDocumentElement().normalize();
+			
+			Element rootElement = doc.getDocumentElement();
+			Element modelElement = (Element) rootElement.getFirstChild();
+			Element columnElement = (Element) modelElement.getFirstChild();
+			if (columnElement.getElementsByTagName(column).getLength()==0){
+				return false;
+			}
+		}catch(Exception e){}
+		return retorno;
+	}
+	
+	public static String getPrimaryKeyTable(Element modelElement){
+		String nombre = "";
+		try{
+			Element constraintElement = (Element) modelElement.getLastChild();
+			Element pkNameElement = (Element) constraintElement.getFirstChild();
+			nombre = pkNameElement.getTextContent();
+		}catch(Exception e){}
+		return nombre;
+	}
+	
+	public static ArrayList<String> getColumnsPKTable(Element modelElement){
+		ArrayList<String> nombres = new ArrayList<String>();
+		try{
+			Element constraintElement = (Element) modelElement.getLastChild();
+			Element pkElement = (Element) constraintElement.getFirstChild();
+			Element pkNameElement = (Element) pkElement.getFirstChild();
+
+			for (int i=0; i<pkNameElement.getAttributes().getLength(); i++){
+				Attr aActual = pkNameElement.getAttributeNode("Column_"+i);
+				nombres.add(aActual.getValue());
+			}
+		}catch(Exception e){}
+		return nombres;
 	}
 	
 	/*

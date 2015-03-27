@@ -2,9 +2,10 @@ grammar GSQL;
 
 //Palabras Reservadas
 
-INT : 'int' ;
-CHAR : 'char' ;
+INT : 'int';
+CHAR : 'char';
 FLOAT : 'float';
+DATE : 'date';
 CREATE : 'CREATE';
 DATABASE : 'DATABASE';
 DATABASES : 'DATABASES';
@@ -47,11 +48,15 @@ fragment Digit :'0'..'9' ;
 fragment Any : ' ' | '#' | '$' | '%' | '.' | '_' | '\\' | '\'' | '"' | '\t' | '\n' ;
 fragment AnyT : (' ' .. '~') | '\\' | '\'' | '"' | '\t' | '\n' ;
 fragment AnyAll : Letter | Digit | Any ;
+fragment DateDay : ('0' | '1' | '2' | '3') Digit;
+fragment DateMonth: ('0'|'1') Digit;
+fragment DateYear : ('1'|'2') Digit Digit Digit;
 
 Id : Letter(Letter|Digit|'_')* ;
 Num : Digit(Digit)* ;
-SimpDigit : Digit;
+Float : Digit(Digit)* '.' Digit(Digit)*;
 Char : '\'' (AnyAll)* '\'' ;
+Date : DateYear '-' DateMonth '-' DateDay;
 Comments: '//' ~('\r' | '\n' )*  -> channel(HIDDEN);
 WhitespaceDeclaration : [\t\r\n\f ]+ -> skip ;
 
@@ -105,26 +110,36 @@ tableInstruction
 	;
 		
 createTable
-	:	CREATE TABLE Id '(' (Id type (',' Id type)*)? (CONSTRAINT constraint)?  ')'
+	:	CREATE TABLE Id '(' Id type (',' Id type)* CONSTRAINT (constraint (',' constraint)*) ')'
 	;
 
 constraint
-	:	(name=Id? PRIMARY KEY '(' Id (',' Id)* ')'
-	|	name=Id? FOREIGN KEY '(' Id (',' Id)* ')' REFERENCES Id '(' Id (',' Id)* ')')
-		(name=Id? CHECK '(' expression ')')*
+	:	primaryKey | foreignKey (foreignKey)* | check (check)*
+	;
+	
+primaryKey
+	:	Id PRIMARY KEY '(' Id (',' Id)* ')'
+	;
+	
+foreignKey
+	:	Id FOREIGN KEY '(' Id (',' Id)* ')' reference
+	;
+	
+reference
+	:	REFERENCES Id '(' Id (',' Id)* ')'
+	;
+	
+check
+	:	Id CHECK '(' expression ')'
 	;
 	
 type
-	:	INT
-	|	FLOAT
-	|	date
-	|	CHAR '(' Num ')'
+	:	INT					#intType
+	|	FLOAT				#floatType
+	|	DATE				#dateType
+	|	CHAR '(' Num ')'	#charType
 	;
 
-date
-	: ('1'|'2') SimpDigit SimpDigit SimpDigit '-' ('0'|'1') SimpDigit '-' ('0'|'1'|'2'|'3') SimpDigit 
-	;
-	
 expression
 	:	andExpression											#expAndExpression
 	|	expression orOp andExpression							#condOrExpression
@@ -198,6 +213,7 @@ literal
 	:	int_literal
 	|	char_literal
 	|	float_literal
+	|	date_literal
 	;
 	
 int_literal
@@ -205,11 +221,15 @@ int_literal
 	;
 
 float_literal
-	:	Num '.' Num
+	:	Float | Num
 	;
 	
 char_literal
 	:	Char
+	;
+
+date_literal
+	: 	Date
 	;
 	
 insertInto	

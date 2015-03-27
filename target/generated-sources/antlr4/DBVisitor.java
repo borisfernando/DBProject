@@ -1,5 +1,11 @@
 import java.io.File;
 
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpression;
+import javax.xml.xpath.XPathFactory;
+
+import java.util.ArrayList;
 import java.util.HashMap;
 
 import javax.swing.JOptionPane;
@@ -16,18 +22,14 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
-public class DBVisitor extends GSQLBaseVisitor<String>{
+public class DBVisitor extends GSQLBaseVisitor<Type>{
 	private static String DBActual = "";
 	private static String TableActual = "";
 	private static int contNumRow = 0;
-	private HashMap<String, Type> hm;
 	private static HashMap<String, Document> hmDatabase;
 	
 	public DBVisitor(){
 		Xml.createMetadataD();
-		hm = new HashMap<String, Type>();
-		hm.put("int", new VarType("int"));
-		hm.put("float", new VarType("float"));
 	}
 	
 	/*
@@ -65,13 +67,13 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 	}
 	
 	@Override
-	public String visitProgram(GSQLParser.ProgramContext ctx) {
+	public Type visitProgram(GSQLParser.ProgramContext ctx) {
 		// TODO Auto-generated method stub
 		return super.visitProgram(ctx);
 	}
 
 	@Override
-	public String visitCreateDatabase(GSQLParser.CreateDatabaseContext ctx) {
+	public Type visitCreateDatabase(GSQLParser.CreateDatabaseContext ctx) {
 		try{
 			File fNew = new File("DB/"+ctx.Id().getText());
 			if (!Xml.existDB(ctx.Id().getText())){
@@ -89,7 +91,7 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 	}
 	
 	@Override
-	public String visitAlterDatabase(GSQLParser.AlterDatabaseContext ctx) {
+	public Type visitAlterDatabase(GSQLParser.AlterDatabaseContext ctx) {
 		try{
 			File f = new File("DB/"+ctx.Id(0).getText());
 			File fNew = new File("DB/"+ctx.Id(1).getText());
@@ -115,7 +117,7 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 	}
 	
 	@Override
-	public String visitUseDatabase(GSQLParser.UseDatabaseContext ctx) {
+	public Type visitUseDatabase(GSQLParser.UseDatabaseContext ctx) {
 		if (Xml.existDB(ctx.Id().getText())){
 			if (DBActual != ""){
 				Xml.guardarDatabase(DBActual, hmDatabase);
@@ -143,7 +145,7 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 	}
 	
 	@Override
-	public String visitDropDatabase(GSQLParser.DropDatabaseContext ctx) {
+	public Type visitDropDatabase(GSQLParser.DropDatabaseContext ctx) {
 		try{
 			File f = new File("DB/"+ctx.Id().getText());
 			if (Xml.existDB(ctx.Id().getText())){
@@ -165,12 +167,12 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 	}
 	
 	@Override
-	public String visitCreateTable(GSQLParser.CreateTableContext ctx) {
-		// TODO Auto-generated method stub
+	public Type visitCreateTable(GSQLParser.CreateTableContext ctx) {
 		try{
 			if (Xml.existDB(DBActual)){
 				File fT = new File("DB/"+DBActual+"/"+ctx.Id(0).getText()+".xml");
 				if (!Xml.existTable(DBActual,ctx.Id(0).getText())){
+					boolean guardar = true;
 					DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
 					DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
 					Document doc = docBuilder.newDocument();
@@ -180,46 +182,127 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 					Element databaseElement = doc.createElement("Database");
 					Element modelElement = doc.createElement("Model");
 					
+					Element columnElement = doc.createElement("Column");
+					Element constraintElement = doc.createElement("Constraint");
+					Element pkElement = doc.createElement("PrimaryKey");
+					Element fkElement = doc.createElement("ForeignKey");
+					
 					for (int i=1; i<ctx.Id().size(); i++){
 						Element eNuevo = doc.createElement(ctx.Id(i).getText());
-						//FALTA CONSTRAINT
-						if (ctx.constraint() != null){				
-							if (visit(ctx.constraint()).equals(ctx.Id(i).getText())){
-								Attr attrC = doc.createAttribute("Constraint_FALTA");
-								attrC.setValue("PRIMARY_KEY");
-								eNuevo.setAttributeNode(attrC);
-							}
-						}
 						Attr attr = doc.createAttribute("Type");
-						attr.setValue(ctx.type(i-1).getText());
-						eNuevo.setAttributeNode(attr);
-						//FALTA LENGTH CHAR
-						if (ctx.type(i-1).getText().contains("char")){
-							Attr attrCh = doc.createAttribute("Length");
-							attrCh.setValue("10_ejemplo");
-							eNuevo.setAttributeNode(attrCh);
+						Type t = visit(ctx.type(i-1));
+						if (!t.getName().equals("char")){
+							attr.setValue(t.getName());
+							eNuevo.setAttributeNode(attr);
 						}
-						modelElement.appendChild(eNuevo);
+						else{
+							CharType cT = (CharType) t;
+							Attr attrL = doc.createAttribute("Length");
+							attr.setValue(cT.getName());
+							attrL.setValue(""+cT.getCantidad());
+							eNuevo.setAttributeNode(attrL);
+							eNuevo.setAttributeNode(attr);
+						}
+						columnElement.appendChild(eNuevo);
 					}
+					if (ctx.constraint().size()==0){
+						guardar = false;
+					}
+					//Constraints
+					for (int i=0; i<ctx.constraint().size(); i++){
+						Type t = visit(ctx.constraint(i));
+						if (t.getName().equals("PK")){
+							PrimaryKey pK = (PrimaryKey) t;
+							String id = pK.getId();
+							Element pkChildElement = doc.createElement("PKName");
+							pkChildElement.setTextContent(id);
+							for (int j=0; j<pK.getLengthColumnsId(); j++){
+								Attr attr = doc.createAttribute("Column_"+j);
+								String columnC = pK.getColumnId(j);
+								if (columnElement.getElementsByTagName(columnC).getLength()!=0){
+									attr.setValue(columnC);
+								}
+								else{
+									guardar = false;
+									System.out.println("Column name "+columnC+" does not exist in Table "+ctx.Id(0).getText()+".");
+								}
+								pkChildElement.setAttributeNode(attr);
+							}
+							pkElement.appendChild(pkChildElement);
+						}
+						else if(t.getName().equals("FK")){
+							ForeignKey fK = (ForeignKey) t;
+							Element fkChildElement = doc.createElement("FK");
+							Element fkChildNameElement = doc.createElement("FKName");
+							Element fkChildReferenceElement = doc.createElement("ReferenceTable");
+							Attr attrTable = doc.createAttribute("Table");
+							attrTable.setValue(fK.getTableReference());
+							fkChildReferenceElement.setAttributeNodeNS(attrTable);
+							File f = new File("DB/"+DBActual+"/"+fK.getTableReference()+".xml");
+							if (!Xml.existTable(DBActual, fK.getTableReference())){
+								guardar = false;
+								System.out.println("Table "+fK.getTableReference()+" as a reference, does not exist.");
+							}
+							if (fK.getLengthColumnsId()==fK.getLengthReferences()){
+								for (int j=0; j<fK.getLengthColumnsId(); j++){
+									if (Xml.existTable(DBActual, fK.getTableReference())){
+										if (Xml.existColumnInTable(f, fK.getReference(j))){
+											Element fkChildNameColumn = doc.createElement("FKName_"+j);
+											fkChildNameColumn.setTextContent(fK.getColumnId(j));
+											fkChildNameElement.appendChild(fkChildNameColumn);
+											Element fkChildReferenceColumn = doc.createElement("ReferenceName_"+j);
+											fkChildReferenceColumn.setTextContent(fK.getReference(j));
+											fkChildReferenceElement.appendChild(fkChildReferenceColumn);
+										}
+										else{
+											guardar = false;
+											System.out.println("Column "+fK.getReference(j)+" does not exist in Table Reference "+fK.getTableReference()+".");
+										}
+									}
+								}
+							}
+							else{
+								guardar = false;
+							}
+							fkChildElement.appendChild(fkChildNameElement);
+							fkChildElement.appendChild(fkChildReferenceElement);
+							fkElement.appendChild(fkChildElement);
+						}
+						else if(t.getName().equals("CK")){
+						
+						}
+					}
+					if (guardar){
+						constraintElement.appendChild(pkElement);
+						constraintElement.appendChild(fkElement);
+						modelElement.appendChild(columnElement);
+						modelElement.appendChild(constraintElement);
+						
+						rootElement.appendChild(modelElement);
+						rootElement.appendChild(databaseElement);
+						doc.appendChild(rootElement);
+						
 					
-					rootElement.appendChild(modelElement);
-					rootElement.appendChild(databaseElement);
-					doc.appendChild(rootElement);
+						hmDatabase.put(ctx.Id(0).getText(),doc);
 					
-					hmDatabase.put(ctx.Id(0).getText(),doc);
 					
-					// Write the content into xml file
-					TransformerFactory transformerFactory = TransformerFactory.newInstance();
-					Transformer transformer = transformerFactory.newTransformer();
-					DOMSource source = new DOMSource(doc);
-					StreamResult result = new StreamResult(fT);
-					transformer.transform(source, result);
-					fT.getParentFile().mkdirs(); 
-					fT.createNewFile();
+						// Write the content into xml file
+						TransformerFactory transformerFactory = TransformerFactory.newInstance();
+						Transformer transformer = transformerFactory.newTransformer();
+						DOMSource source = new DOMSource(doc);
+						StreamResult result = new StreamResult(fT);
+						transformer.transform(source, result);
+						fT.getParentFile().mkdirs(); 
+						fT.createNewFile();
 					
-					Xml.addMetadataT(DBActual,ctx.Id(0).getText());
-					Xml.modifyDatabase(DBActual, "Tables");
-					System.out.println("Correct. Table name "+ctx.Id(0).getText()+" added to database "+DBActual+".");
+					
+						Xml.addMetadataT(DBActual,ctx.Id(0).getText());
+						Xml.modifyDatabase(DBActual, "Tables");
+						System.out.println("Correct. Table name "+ctx.Id(0).getText()+" added to database "+DBActual+".");
+					}
+					else{
+						System.out.println("False. Table name "+ctx.Id(0).getText()+" was not added to database "+DBActual+".");
+					}
 				}
 				else{
 					System.out.println("Table already exist in database "+DBActual);
@@ -233,7 +316,7 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 	}
 	
 	@Override
-	public String visitRenameAlterTable(GSQLParser.RenameAlterTableContext ctx) {
+	public Type visitRenameAlterTable(GSQLParser.RenameAlterTableContext ctx) {
 		try{
 			File f = new File("DB/"+DBActual+"/"+ctx.Id(0).getText()+".xml");
 			if (Xml.existDB(DBActual)){
@@ -270,7 +353,7 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 	}
 	
 	@Override
-	public String visitActionAlterTable(GSQLParser.ActionAlterTableContext ctx) {
+	public Type visitActionAlterTable(GSQLParser.ActionAlterTableContext ctx) {
 		if (Xml.existDB(DBActual)){
 			if (Xml.existTable(DBActual,ctx.Id().getText())){
 				TableActual = ctx.Id().getText();
@@ -284,7 +367,7 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 	}
 	
 	@Override
-	public String visitActionAddColumn(GSQLParser.ActionAddColumnContext ctx) {
+	public Type visitActionAddColumn(GSQLParser.ActionAddColumnContext ctx) {
 		try{
 			File f = new File("DB/"+DBActual+"/"+TableActual+".xml");
 			DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
@@ -330,7 +413,7 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 	}
 
 	@Override
-	public String visitActionDropColumn(GSQLParser.ActionDropColumnContext ctx) {
+	public Type visitActionDropColumn(GSQLParser.ActionDropColumnContext ctx) {
 		// TODO Auto-generated method stub
 		try{
 			File f = new File("DB/"+DBActual+"/"+TableActual+".xml");
@@ -376,15 +459,14 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 	}
 	
 	@Override
-	public String visitDropTable(GSQLParser.DropTableContext ctx) {
+	public Type visitDropTable(GSQLParser.DropTableContext ctx) {
 		// TODO Auto-generated method stub
 		// FALTA REVISAR LAS REFERENCIAS PARA PODER ELIMINAR POR COMPLETO LA TABLA
 		try{
 			File f = new File("DB/"+DBActual+"/"+ctx.Id().getText()+".xml");
 			if (Xml.existTable(DBActual,ctx.Id().getText())){
-				//x.deleteDatabase(ctx.Id().getText());
 				Xml.deleteTable(DBActual, ctx.Id().getText());
-				
+				hmDatabase.remove(ctx.Id().getText());
 				if (f.delete())
 					System.out.println("Database "+ctx.Id().getText()+" deleted.");
 				else
@@ -397,26 +479,67 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 	}
 	
 	@Override
-	public String visitEqOpExpression(GSQLParser.EqOpExpressionContext ctx) {
+	public Type visitEqOpExpression(GSQLParser.EqOpExpressionContext ctx) {
 		// TODO Auto-generated method stub
 		return super.visitEqOpExpression(ctx);
 	}
 
 	@Override
-	public String visitSelectFrom(GSQLParser.SelectFromContext ctx) {
+	public Type visitSelectFrom(GSQLParser.SelectFromContext ctx) {
 		// TODO Auto-generated method stub
 		return super.visitSelectFrom(ctx);
 	}	
 
 	@Override
-	public String visitConstraint(GSQLParser.ConstraintContext ctx) {
+	public Type visitConstraint(GSQLParser.ConstraintContext ctx) {
 		// TODO Auto-generated method stub
-		//return super.visitConstraint(ctx);
-		return ctx.Id(0).getText();
+		return super.visitConstraint(ctx);
 	}
 
 	@Override
-	public String visitDeleteFrom(GSQLParser.DeleteFromContext ctx) {
+	public Type visitForeignKey(GSQLParser.ForeignKeyContext ctx) {
+		String id = ctx.Id(0).getText();
+		String[] columnsId = new String[ctx.Id().size()-1];
+		for (int i=1; i<ctx.Id().size(); i++){
+			columnsId[i-1] = ctx.Id(i).getText();
+		}
+		Key t = (Key) visit(ctx.reference());
+		String referenceTable = t.getId();
+		ForeignKey fK = new ForeignKey("FK", id, columnsId, referenceTable, t.getColumnsId());
+		return fK;
+	}
+	
+	@Override
+	public Type visitReference(GSQLParser.ReferenceContext ctx) {
+		String id = ctx.Id(0).getText();
+		String[] references = new String[ctx.Id().size()-1];
+		for (int i=1 ; i<ctx.Id().size(); i++){
+			references[i-1] = ctx.Id(i).getText();
+		}
+		Key k = new Key("REF",id,references);
+		return k;
+	}
+
+	@Override
+	public Type visitCheck(GSQLParser.CheckContext ctx) {
+		// TODO Auto-generated method stub
+		return super.visitCheck(ctx);
+	}
+
+	@Override
+	public Type visitPrimaryKey(GSQLParser.PrimaryKeyContext ctx) {		 
+		String id = ctx.Id(0).getText();
+		String[] columnsId = new String[ctx.Id().size()-1];
+		
+		for (int i=1; i<ctx.Id().size(); i++){
+			columnsId[i-1] = ctx.Id(i).getText();
+		}
+		PrimaryKey pK = new PrimaryKey("PK", id, columnsId);
+		return pK;
+	}
+
+	@Override
+	public Type visitDeleteFrom(GSQLParser.DeleteFromContext ctx) {
 		// TODO Auto-generated method stub
 		try{
 			if (Xml.existDB(DBActual)){
@@ -460,31 +583,44 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 	}
 
 	@Override
-	public String visitShowColumns(GSQLParser.ShowColumnsContext ctx) {
+	public Type visitShowColumns(GSQLParser.ShowColumnsContext ctx) {
 		// TODO Auto-generated method stub
 		return super.visitShowColumns(ctx);
 	}
 
 	@Override
-	public String visitDate(GSQLParser.DateContext ctx) {
-		// TODO Auto-generated method stub
-		return super.visitDate(ctx);
+	public Type visitFloatType(GSQLParser.FloatTypeContext ctx) {
+		return new DataType(ctx.getText());
 	}
 
 	@Override
-	public String visitType(GSQLParser.TypeContext ctx) {
-		// TODO Auto-generated method stub
-		return super.visitType(ctx);
+	public Type visitIntType(GSQLParser.IntTypeContext ctx) {
+		return new DataType(ctx.getText());
 	}
 
 	@Override
-	public String visitUnExpression(GSQLParser.UnExpressionContext ctx) {
+	public Type visitCharType(GSQLParser.CharTypeContext ctx) {
+		return new CharType(ctx.CHAR().getText(),Integer.parseInt(ctx.Num().getText()));
+	}
+
+	@Override
+	public Type visitDateType(GSQLParser.DateTypeContext ctx) {
+		return new DataType(ctx.getText());
+	}
+
+	@Override
+	public Type visitDate_literal(GSQLParser.Date_literalContext ctx) {
+		return new ValueType("date",ctx.Date().getText());
+	}
+
+	@Override
+	public Type visitUnExpression(GSQLParser.UnExpressionContext ctx) {
 		// TODO Auto-generated method stub
 		return super.visitUnExpression(ctx);
 	}
 
 	@Override
-	public String visitShowTables(GSQLParser.ShowTablesContext ctx) {
+	public Type visitShowTables(GSQLParser.ShowTablesContext ctx) {
 		// TODO Auto-generated method stub
 		try{
 			Table t = new Table();
@@ -501,26 +637,32 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 			t.agregarDatabase(DBActual, nombres);
 			for (File file : listOfFiles) {
 				if (file.isFile() && !file.getName().contains(".md")){
-					File f = new File("DB/"+DBActual+"/"+file.getName());
-					DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
-					DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
-					Document doc = docBuilder.parse(f);
+					String name1 = file.getName();
+					String n2 = name1.substring(0, name1.indexOf(".xml"));
+					
+					Document doc = hmDatabase.get(n2);
 					doc.getDocumentElement().normalize();
 					
 					Node nodoRaiz = doc.getDocumentElement();
 					Node modelElement = nodoRaiz.getFirstChild();
+					Node columnsElement = modelElement.getFirstChild();
 					Node databaseElement = nodoRaiz.getLastChild();
 					
-					String[] columns = new String[modelElement.getChildNodes().getLength()];
-					for (int i=0; i<modelElement.getChildNodes().getLength(); i++){
-						columns[i] = modelElement.getChildNodes().item(i).getNodeName();
+					HashMap<String, Integer> hmNumberColumn = new HashMap<String, Integer>();
+					String[] columns = new String[columnsElement.getChildNodes().getLength()];
+					for (int i=0; i<columnsElement.getChildNodes().getLength(); i++){
+						String nombre = columnsElement.getChildNodes().item(i).getNodeName();
+						columns[i] = nombre;
+						hmNumberColumn.put(nombre, i);
 					}
 					t.agregarTabla(file.getName().substring(0, file.getName().indexOf(".xml")), columns, databaseElement.getChildNodes().getLength());
 					for (int i=0; i<databaseElement.getChildNodes().getLength(); i++){
 						Node tActual = databaseElement.getChildNodes().item(i);
 						String[] datos = new String[tActual.getChildNodes().getLength()];
 						for (int j=0; j<tActual.getChildNodes().getLength(); j++){
-							datos[j] = tActual.getChildNodes().item(j).getTextContent();
+							String nombre = tActual.getChildNodes().item(j).getNodeName();
+							int index = hmNumberColumn.get(nombre);
+							datos[index] = tActual.getChildNodes().item(j).getTextContent();
 						}
 						t.agregarDatosTabla(datos);
 					}
@@ -528,43 +670,41 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 			}
 			t.mostrarTabla();
 		}catch(Exception e){e.printStackTrace();}
-		
-		
 		return super.visitShowTables(ctx);
 	}
 
 	@Override
-	public String visitExpAndExpression(GSQLParser.ExpAndExpressionContext ctx) {
+	public Type visitExpAndExpression(GSQLParser.ExpAndExpressionContext ctx) {
 		// TODO Auto-generated method stub
 		return super.visitExpAndExpression(ctx);
 	}
 
 	@Override
-	public String visitCondOrExpression(GSQLParser.CondOrExpressionContext ctx) {
+	public Type visitCondOrExpression(GSQLParser.CondOrExpressionContext ctx) {
 		// TODO Auto-generated method stub
 		return super.visitCondOrExpression(ctx);
 	}
 	
 	@Override
-	public String visitActionDropConstraint(GSQLParser.ActionDropConstraintContext ctx) {
+	public Type visitActionDropConstraint(GSQLParser.ActionDropConstraintContext ctx) {
 		// TODO Auto-generated method stub
 		return super.visitActionDropConstraint(ctx);
 	}
 
 	@Override
-	public String visitActionAddConstraint(GSQLParser.ActionAddConstraintContext ctx) {
+	public Type visitActionAddConstraint(GSQLParser.ActionAddConstraintContext ctx) {
 		// TODO Auto-generated method stub
 		return super.visitActionAddConstraint(ctx);
 	}
 
 	@Override
-	public String visitCondExpression(GSQLParser.CondExpressionContext ctx) {
+	public Type visitCondExpression(GSQLParser.CondExpressionContext ctx) {
 		// TODO Auto-generated method stub
 		return super.visitCondExpression(ctx);
 	}
 
 	@Override
-	public String visitInsertInto(GSQLParser.InsertIntoContext ctx) {
+	public Type visitInsertInto(GSQLParser.InsertIntoContext ctx) {
 		// TODO Auto-generated method stub
 		try{
 			if (Xml.existDB(DBActual)){
@@ -573,20 +713,90 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 					doc.getDocumentElement().normalize();
 					
 					Element nodoRaiz = doc.getDocumentElement();
-					Node modelElement = nodoRaiz.getFirstChild();
-					Node databaseElement = nodoRaiz.getLastChild();
+					Element modelElement = (Element)nodoRaiz.getFirstChild();
+					
+					String pkName = Xml.getPrimaryKeyTable(modelElement);
+					ArrayList<String> pkColumns = Xml.getColumnsPKTable(modelElement);
+					ArrayList<Attr> attributes = new ArrayList<Attr>();
+					
+					XPathFactory xPathfactory = XPathFactory.newInstance();
+					XPath xpath = xPathfactory.newXPath();
+					
+					Element columnsElement = (Element)modelElement.getFirstChild();
+					Element databaseElement = (Element)nodoRaiz.getLastChild();
 					
 					Element elementA = doc.createElement(ctx.Id(0).getText());
 					if (ctx.literal().size()>0){
-						for (int i=0; i<modelElement.getChildNodes().getLength(); i++){
-							Node n = doc.createElement(modelElement.getChildNodes().item(i).getNodeName());
+						for (int i=0; i<columnsElement.getChildNodes().getLength(); i++){
+							Node n = doc.createElement(columnsElement.getChildNodes().item(i).getNodeName());
 							elementA.appendChild(n);
 						}
+						boolean guardar = true;
 						for (int i=1; i<ctx.Id().size(); i++){
-							NodeList nodos = elementA.getElementsByTagName(ctx.Id(i).getText());
-							nodos.item(0).setTextContent(ctx.literal(i-1).getText());	
+							Attr a = null;
+							Element nodosM = (Element) columnsElement.getElementsByTagName(ctx.Id(i).getText()).item(0);
+							Element nodos = (Element) elementA.getElementsByTagName(ctx.Id(i).getText()).item(0);
+							boolean esPK = pkColumns.contains(ctx.Id(i).getText());
+							ValueType vT = (ValueType) visit(ctx.literal(i-1));
+							if (vT.getName().equals(nodosM.getAttribute("Type"))){
+								String value = vT.getValue();
+								if(vT.getName().equals("char")){
+									if (Integer.parseInt(nodosM.getAttribute("Length"))>value.length()){
+										if (esPK){
+											a = doc.createAttribute(ctx.Id(i).getText());
+											a.setValue(value);
+										}
+										nodos.setTextContent(value);
+									}
+									else{
+										guardar = false;
+										System.out.println("Error in Insert. Char \""+value+"\" greater than expected.");
+									}
+								}
+								else{
+									if (esPK){
+										a = doc.createAttribute(ctx.Id(i).getText());
+										a.setValue(value);
+									}
+									nodos.setTextContent(value);
+								}
+							}
+							else{
+								System.out.println("Error in Insert. Found "+vT.getName()+" expected "+nodosM.getAttribute("Type"));
+								guardar = false;
+							}
+							
+							if (esPK){
+								attributes.add(a);
+							}
 						}
-						databaseElement.appendChild(elementA);
+						
+						
+						if (guardar){
+							String cond = "[";
+							for (int i=0; i<attributes.size()-1; i++){
+								cond+="@"+attributes.get(i).getName()+"=\'"+attributes.get(i).getValue()+"\' and ";
+							}
+							cond+="@"+attributes.get(attributes.size()-1).getName()+"=\'"+attributes.get(attributes.size()-1).getValue()+"\']";
+							String exp = "//"+ctx.Id(0).getText()+cond;
+							XPathExpression expr = xpath.compile(exp);
+							Object result = expr.evaluate(doc, XPathConstants.NODESET);
+					        NodeList nodes = (NodeList) result;
+					        if (nodes.getLength()==0){
+								for (Attr a: attributes)
+									elementA.setAttributeNode(a);
+								databaseElement.appendChild(elementA);
+								System.out.println("Insert("+contNumRow+").");
+					        }
+					        else{
+					        	String ret = "";
+					        	for (int i=0; i<attributes.size()-1; i++){
+									ret+=""+attributes.get(i).getName()+"=\'"+attributes.get(i).getValue()+"\', ";
+								}
+					        	ret+=""+attributes.get(attributes.size()-1).getName()+"=\'"+attributes.get(attributes.size()-1).getValue()+"\'";
+					        	System.out.println("Already exist a row with "+ret+" as Primary Key.");
+					        }
+						}
 						
 						contNumRow = Xml.modifyTable(DBActual, ctx.Id(0).getText())+1;
 						Xml.modifyDatabase(DBActual, "Records");
@@ -608,85 +818,83 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 	}
 
 	@Override
-	public String visitShowDatabase(GSQLParser.ShowDatabaseContext ctx) {
+	public Type visitShowDatabase(GSQLParser.ShowDatabaseContext ctx) {
 		// TODO Auto-generated method stub
 		return super.visitShowDatabase(ctx);
 	}
 
 	@Override
-	public String visitRelOp(GSQLParser.RelOpContext ctx) {
+	public Type visitRelOp(GSQLParser.RelOpContext ctx) {
 		// TODO Auto-generated method stub
 		return super.visitRelOp(ctx);
 	}
 
 	@Override
-	public String visitInt_literal(GSQLParser.Int_literalContext ctx) {
-		// TODO Auto-generated method stub
-		return super.visitInt_literal(ctx);
+	public Type visitInt_literal(GSQLParser.Int_literalContext ctx) {
+		return new ValueType("int",ctx.Num().getText());
 	}
 
 	@Override
-	public String visitEqAndExpression(GSQLParser.EqAndExpressionContext ctx) {
+	public Type visitEqAndExpression(GSQLParser.EqAndExpressionContext ctx) {
 		// TODO Auto-generated method stub
 		return super.visitEqAndExpression(ctx);
 	}
 
 	@Override
-	public String visitRelOpExpression(GSQLParser.RelOpExpressionContext ctx) {
+	public Type visitRelOpExpression(GSQLParser.RelOpExpressionContext ctx) {
 		// TODO Auto-generated method stub
 		return super.visitRelOpExpression(ctx);
 	}
 
 	@Override
-	public String visitAndOp(GSQLParser.AndOpContext ctx) {
+	public Type visitAndOp(GSQLParser.AndOpContext ctx) {
 		// TODO Auto-generated method stub
 		return super.visitAndOp(ctx);
 	}
 
 	@Override
-	public String visitDatabase(GSQLParser.DatabaseContext ctx) {
+	public Type visitDatabase(GSQLParser.DatabaseContext ctx) {
 		// TODO Auto-generated method stub
 		return super.visitDatabase(ctx);
 	}
 
 	@Override
-	public String visitChar_literal(GSQLParser.Char_literalContext ctx) {
-		// TODO Auto-generated method stub
-		return super.visitChar_literal(ctx);
+	public Type visitChar_literal(GSQLParser.Char_literalContext ctx) {	
+		String t = ctx.Char().getText().substring(1, ctx.Char().getText().length()-1);
+		return new ValueType("char", t);
 	}
 
 	@Override
-	public String visitFloat_literal(GSQLParser.Float_literalContext ctx) {
-		// TODO Auto-generated method stub
-		return super.visitFloat_literal(ctx);
+	public Type visitFloat_literal(GSQLParser.Float_literalContext ctx) {
+		return new ValueType("float",ctx.Float().getText());
 	}
 
 	@Override
-	public String visitEqRelExpression(GSQLParser.EqRelExpressionContext ctx) {
+	public Type visitEqRelExpression(GSQLParser.EqRelExpressionContext ctx) {
 		// TODO Auto-generated method stub
 		return super.visitEqRelExpression(ctx);
 	}
 
 	@Override
-	public String visitEqOp(GSQLParser.EqOpContext ctx) {
+	public Type visitEqOp(GSQLParser.EqOpContext ctx) {
 		// TODO Auto-generated method stub
 		return super.visitEqOp(ctx);
 	}
 
 	@Override
-	public String visitOrOp(GSQLParser.OrOpContext ctx) {
+	public Type visitOrOp(GSQLParser.OrOpContext ctx) {
 		// TODO Auto-generated method stub
 		return super.visitOrOp(ctx);
 	}
 
 	@Override
-	public String visitRelSumExpression(GSQLParser.RelSumExpressionContext ctx) {
+	public Type visitRelSumExpression(GSQLParser.RelSumExpressionContext ctx) {
 		// TODO Auto-generated method stub
 		return super.visitRelSumExpression(ctx);
 	}
 
 	@Override
-	public String visitUpdateSet(GSQLParser.UpdateSetContext ctx) {
+	public Type visitUpdateSet(GSQLParser.UpdateSetContext ctx) {
 		// TODO Auto-generated method stub
 		try{
 			if (Xml.existDB(DBActual)){
@@ -741,13 +949,13 @@ public class DBVisitor extends GSQLBaseVisitor<String>{
 	}
 
 	@Override
-	public String visitTableInstruction(GSQLParser.TableInstructionContext ctx) {
+	public Type visitTableInstruction(GSQLParser.TableInstructionContext ctx) {
 		// TODO Auto-generated method stub
 		return super.visitTableInstruction(ctx);
 	}
 
 	@Override
-	public String visitLiteral(GSQLParser.LiteralContext ctx) {
+	public Type visitLiteral(GSQLParser.LiteralContext ctx) {
 		// TODO Auto-generated method stub
 		return super.visitLiteral(ctx);
 	}
