@@ -27,6 +27,7 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 	private static String TableActual = "";
 	private static int contNumRow = 0;
 	private static HashMap<String, Document> hmDatabase;
+	private static HashMap<String, Index> hmPrimaryKeyDatabase; 
 	
 	public DBVisitor(){
 		Xml.createMetadataD();
@@ -120,9 +121,10 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 	public Type visitUseDatabase(GSQLParser.UseDatabaseContext ctx) {
 		if (Xml.existDB(ctx.Id().getText())){
 			if (DBActual != ""){
-				Xml.guardarDatabase(DBActual, hmDatabase);
+				Xml.guardarDatabase(DBActual, hmDatabase);				
 			}
 			hmDatabase = new HashMap<String, Document>();
+			hmPrimaryKeyDatabase = new HashMap<String, Index>();
 			File folder = new File("DB/"+ctx.Id().getText()+"/");
 			File[] filesInFolder = folder.listFiles();
 			

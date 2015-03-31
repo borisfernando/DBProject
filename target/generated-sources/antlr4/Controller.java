@@ -12,9 +12,11 @@ import org.w3c.dom.Document;
 public class Controller {
 		
 	HashMap<String, Document> hm;
+	HashMap<String, Index> hmPk;
 	
 	public Controller(){
 		hm = new HashMap<String, Document>();
+		hmPk = new HashMap<String, Index>();
 	}
 	
 	public void parse(String t){
@@ -28,11 +30,17 @@ public class Controller {
 		DBVisitor visitor = new DBVisitor();
 		visitor.visit(tree);
 		hm = visitor.getHMDatabase();
+		//hmPk = visitor.getHmPk();
+		
 		//System.out.println("Parseado exitosamente");
 	}
 	
 	public HashMap<String, Document> getHm(){
 		return hm;
+	}
+	
+	public HashMap<String, Index> getHmPk(){
+		return hmPk;
 	}
 	
 	

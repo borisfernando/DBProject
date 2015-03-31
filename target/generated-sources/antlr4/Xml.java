@@ -1,4 +1,8 @@
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -14,11 +18,6 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
-
-import sun.net.ftp.FtpClient;
-
-import com.sun.xml.internal.ws.message.RootElementSniffer;
-
 
 public class Xml {
 	/*
@@ -56,12 +55,54 @@ public class Xml {
 		return retorno;
 	}
 	
+	public static void serializeHM(String DBActual,HashMap hm){
+		try
+        {
+               FileOutputStream fos = new FileOutputStream("DB/"+DBActual+"/hm.ser");
+               ObjectOutputStream oos = new ObjectOutputStream(fos);
+               oos.writeObject(hm);
+               oos.close();
+               fos.close();
+               System.out.printf("Serialized HashMap data is saved in hm.ser");
+        }catch(Exception ioe)
+         {
+               ioe.printStackTrace();
+         }
+	}
+	
+	public static HashMap deSerializeHM(String DBActual){
+		HashMap map = null;
+		try
+	      {
+	         FileInputStream fis = new FileInputStream("DB/"+DBActual+"/hm.ser");
+	         ObjectInputStream ois = new ObjectInputStream(fis);
+	         map = (HashMap) ois.readObject();
+	         ois.close();
+	         fis.close();
+	      }catch(Exception ioe)
+	      {
+	         ioe.printStackTrace();
+	      }
+		return map;
+	}
+	
+	public static String getPrimaryKeyReferenceTable(Element modelElement){
+		String nombre = "";
+		try{
+			Element constraintElement = (Element) modelElement.getLastChild();
+			Element pkNameElement = (Element) constraintElement.getFirstChild();
+			Element pkRefElement = (Element) pkNameElement.getFirstChild();
+			nombre = pkRefElement.getTextContent();
+		}catch(Exception e){}
+		return nombre;
+	}
+	
 	public static String getPrimaryKeyTable(Element modelElement){
 		String nombre = "";
 		try{
 			Element constraintElement = (Element) modelElement.getLastChild();
 			Element pkNameElement = (Element) constraintElement.getFirstChild();
-			nombre = pkNameElement.getTextContent();
+			nombre = pkNameElement.getAttribute("Name");
 		}catch(Exception e){}
 		return nombre;
 	}
@@ -71,11 +112,11 @@ public class Xml {
 		try{
 			Element constraintElement = (Element) modelElement.getLastChild();
 			Element pkElement = (Element) constraintElement.getFirstChild();
-			Element pkNameElement = (Element) pkElement.getFirstChild();
 
-			for (int i=0; i<pkNameElement.getAttributes().getLength(); i++){
-				Attr aActual = pkNameElement.getAttributeNode("Column_"+i);
-				nombres.add(aActual.getValue());
+			for (int i=0; i<pkElement.getChildNodes().getLength(); i++){
+				Node nActual = pkElement.getChildNodes().item(i);
+				String aActual = nActual.getTextContent();
+				nombres.add(aActual);
 			}
 		}catch(Exception e){}
 		return nombres;
