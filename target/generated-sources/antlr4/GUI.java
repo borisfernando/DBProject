@@ -166,6 +166,8 @@ public class GUI extends JFrame {
 				long finale = System.currentTimeMillis();
 				System.out.println("MEMORIA: "+TimeUnit.MILLISECONDS.toSeconds(finale - iniciale));
 				inputText.setEditable(true);
+				cargar.setEnabled(true);
+	        	update.setEnabled(true);
 			}
 		});
 		compilar.setBounds(780, 100, 100, 25);

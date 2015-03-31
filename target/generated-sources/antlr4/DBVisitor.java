@@ -208,68 +208,75 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 					if (ctx.constraint().size()==0){
 						guardar = false;
 					}
-					//Constraints
-					for (int i=0; i<ctx.constraint().size(); i++){
-						Type t = visit(ctx.constraint(i));
-						if (t.getName().equals("PK")){
-							PrimaryKey pK = (PrimaryKey) t;
-							String id = pK.getId();
-							Element pkChildElement = doc.createElement("PKName");
-							pkChildElement.setTextContent(id);
-							for (int j=0; j<pK.getLengthColumnsId(); j++){
-								Attr attr = doc.createAttribute("Column_"+j);
-								String columnC = pK.getColumnId(j);
-								if (columnElement.getElementsByTagName(columnC).getLength()!=0){
-									attr.setValue(columnC);
+					else{
+						//Constraint
+						for (int i=0; i<ctx.constraint().size(); i++){
+							Type t = visit(ctx.constraint(i));
+							if (t.getName().equals("PK")){
+								PrimaryKey pK = (PrimaryKey) t;
+								String id = pK.getId();
+								
+								Attr attr = doc.createAttribute("Name");
+								attr.setValue(id);
+								pkElement.setAttributeNode(attr);
+								for (int j=0; j<pK.getLengthColumnsId(); j++){
+									Element eHijo = doc.createElement("Column");
+									String columnC = pK.getColumnId(j);
+									if (columnElement.getElementsByTagName(columnC).getLength()!=0){
+										eHijo.setTextContent(columnC);
+									}
+									else{
+										guardar = false;
+										System.out.println("Column name "+columnC+" does not exist in Table "+ctx.Id(0).getText()+".");
+									}
+									pkElement.appendChild(eHijo);
+								}
+							}
+							else if(t.getName().equals("FK")){
+								ForeignKey fK = (ForeignKey) t;
+								String id = fK.getId();
+								String tableRef = fK.getTableReference();
+								
+								Element fkChildElement = doc.createElement("FK");
+								Attr aNameFK = doc.createAttribute("Name");
+								aNameFK.setValue(id);
+								fkChildElement.setAttributeNode(aNameFK);
+								
+								if (!Xml.existTable(DBActual, tableRef)){
+									guardar = false;
+									System.out.println("Table "+tableRef+" as a reference, does not exist.");
 								}
 								else{
-									guardar = false;
-									System.out.println("Column name "+columnC+" does not exist in Table "+ctx.Id(0).getText()+".");
-								}
-								pkChildElement.setAttributeNode(attr);
-							}
-							pkElement.appendChild(pkChildElement);
-						}
-						else if(t.getName().equals("FK")){
-							ForeignKey fK = (ForeignKey) t;
-							Element fkChildElement = doc.createElement("FK");
-							Element fkChildNameElement = doc.createElement("FKName");
-							Element fkChildReferenceElement = doc.createElement("ReferenceTable");
-							Attr attrTable = doc.createAttribute("Table");
-							attrTable.setValue(fK.getTableReference());
-							fkChildReferenceElement.setAttributeNodeNS(attrTable);
-							File f = new File("DB/"+DBActual+"/"+fK.getTableReference()+".xml");
-							if (!Xml.existTable(DBActual, fK.getTableReference())){
-								guardar = false;
-								System.out.println("Table "+fK.getTableReference()+" as a reference, does not exist.");
-							}
-							if (fK.getLengthColumnsId()==fK.getLengthReferences()){
-								for (int j=0; j<fK.getLengthColumnsId(); j++){
-									if (Xml.existTable(DBActual, fK.getTableReference())){
-										if (Xml.existColumnInTable(f, fK.getReference(j))){
-											Element fkChildNameColumn = doc.createElement("FKName_"+j);
-											fkChildNameColumn.setTextContent(fK.getColumnId(j));
-											fkChildNameElement.appendChild(fkChildNameColumn);
-											Element fkChildReferenceColumn = doc.createElement("ReferenceName_"+j);
-											fkChildReferenceColumn.setTextContent(fK.getReference(j));
-											fkChildReferenceElement.appendChild(fkChildReferenceColumn);
-										}
-										else{
-											guardar = false;
-											System.out.println("Column "+fK.getReference(j)+" does not exist in Table Reference "+fK.getTableReference()+".");
+									Attr aTableFK = doc.createAttribute("Table");
+									aTableFK.setValue(tableRef);
+									fkChildElement.setAttributeNode(aTableFK);
+									
+									File f = new File("DB/"+DBActual+"/"+tableRef+".xml");
+									if (fK.getLengthColumnsId()==fK.getLengthReferences()){
+										for (int j=0; j<fK.getLengthColumnsId(); j++){
+											if (Xml.existColumnInTable(f, fK.getReference(j))){
+												Element fkChildNameColumn = doc.createElement("Column");
+												fkChildNameColumn.setTextContent(fK.getColumnId(j));
+												Attr aNameCol = doc.createAttribute("Reference");
+												aNameCol.setValue(fK.getReference(j));
+												fkChildNameColumn.setAttributeNode(aNameCol);
+												fkChildElement.appendChild(fkChildNameColumn);
+											}
+											else{
+												guardar = false;
+												System.out.println("Column "+fK.getReference(j)+" does not exist in Table Reference "+fK.getTableReference()+".");
+											}
 										}
 									}
+									else{
+										guardar = false;
+									}
 								}
+								fkElement.appendChild(fkChildElement);
 							}
-							else{
-								guardar = false;
+							else if(t.getName().equals("CK")){
+							
 							}
-							fkChildElement.appendChild(fkChildNameElement);
-							fkChildElement.appendChild(fkChildReferenceElement);
-							fkElement.appendChild(fkChildElement);
-						}
-						else if(t.getName().equals("CK")){
-						
 						}
 					}
 					if (guardar){
@@ -282,9 +289,7 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 						rootElement.appendChild(databaseElement);
 						doc.appendChild(rootElement);
 						
-					
 						hmDatabase.put(ctx.Id(0).getText(),doc);
-					
 					
 						// Write the content into xml file
 						TransformerFactory transformerFactory = TransformerFactory.newInstance();
@@ -796,11 +801,10 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 					        	ret+=""+attributes.get(attributes.size()-1).getName()+"=\'"+attributes.get(attributes.size()-1).getValue()+"\'";
 					        	System.out.println("Already exist a row with "+ret+" as Primary Key.");
 					        }
+					        contNumRow = Xml.modifyTable(DBActual, ctx.Id(0).getText())+1;
+							Xml.modifyDatabase(DBActual, "Records");
+							//System.out.println("INSERT("+contNumRow+") con exito.");
 						}
-						
-						contNumRow = Xml.modifyTable(DBActual, ctx.Id(0).getText())+1;
-						Xml.modifyDatabase(DBActual, "Records");
-						//System.out.println("INSERT("+contNumRow+") con exito.");
 					}
 					
 					hmDatabase.put(ctx.Id(0).getText(), doc);
