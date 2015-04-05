@@ -110,7 +110,7 @@ tableInstruction
 	;
 		
 createTable
-	:	CREATE TABLE Id '(' Id type (',' Id type)* CONSTRAINT (constraint (',' constraint)*) ')'
+	:	CREATE TABLE Id '(' Id type (',' Id type)* (',' CONSTRAINT (constraint (',' constraint)*))? ')'
 	;
 
 constraint
@@ -191,10 +191,10 @@ alterTable
 	;
 
 action
-	:	ADD COLUMN Id type (CONSTRAINT constraint)?		#actionAddColumn
-	|	ADD CONSTRAINT constraint						#actionAddConstraint
-	|	DROP COLUMN Id									#actionDropColumn
-	|	DROP CONSTRAINT Id								#actionDropConstraint
+	:	ADD COLUMN Id type (',' CONSTRAINT constraint)?		#actionAddColumn
+	|	ADD CONSTRAINT constraint							#actionAddConstraint
+	|	DROP COLUMN Id										#actionDropColumn
+	|	DROP CONSTRAINT Id									#actionDropConstraint
 	;
 	
 dropTable
@@ -221,7 +221,7 @@ int_literal
 	;
 
 float_literal
-	:	Float | Num
+	:	Float
 	;
 	
 char_literal

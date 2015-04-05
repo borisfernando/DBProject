@@ -1,3 +1,4 @@
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.Future;
 
@@ -12,11 +13,11 @@ import org.w3c.dom.Document;
 public class Controller {
 		
 	HashMap<String, Document> hm;
-	HashMap<String, Index> hmPk;
+	HashMap<String,ArrayList<String>> arrayListPk;
 	
 	public Controller(){
 		hm = new HashMap<String, Document>();
-		hmPk = new HashMap<String, Index>();
+		arrayListPk = new HashMap<String, ArrayList<String>>();
 	}
 	
 	public void parse(String t){
@@ -30,6 +31,7 @@ public class Controller {
 		DBVisitor visitor = new DBVisitor();
 		visitor.visit(tree);
 		hm = visitor.getHMDatabase();
+		arrayListPk = visitor.getArrayListPk();
 		//hmPk = visitor.getHmPk();
 		
 		//System.out.println("Parseado exitosamente");
@@ -39,8 +41,8 @@ public class Controller {
 		return hm;
 	}
 	
-	public HashMap<String, Index> getHmPk(){
-		return hmPk;
+	public HashMap<String,ArrayList<String>> getArrayListPk(){
+		return arrayListPk;
 	}
 	
 	

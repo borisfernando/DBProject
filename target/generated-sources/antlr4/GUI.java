@@ -179,7 +179,7 @@ public class GUI extends JFrame {
 				long iniciale = System.currentTimeMillis();
 				String database = DBVisitor.returnDBActual();
 				Xml.guardarDatabase(database, compile.getHm());
-				Xml.serializeHM(database, compile.getHmPk());
+				Xml.serializeArray(database, compile.getArrayListPk());
 				Xml.updateDatabases();
 				long finale = System.currentTimeMillis();
 				System.out.println("GUARDAR "+TimeUnit.MILLISECONDS.toSeconds(finale - iniciale));

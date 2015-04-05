@@ -16,6 +16,7 @@ import javax.xml.transform.stream.StreamResult;
 import org.w3c.dom.Attr;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
@@ -37,6 +38,68 @@ public class Xml {
 		return doc;
 	}
 	
+	public static NamedNodeMap getTypeColumn(File fT, String column){
+		try{
+			DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+			DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+			Document doc = docBuilder.parse(fT);
+			doc.getDocumentElement().normalize();
+			
+			Element rootElement = doc.getDocumentElement();
+			Element modelElement = (Element) rootElement.getFirstChild();
+			Element columnElement = (Element) modelElement.getFirstChild();
+			NodeList nList = columnElement.getElementsByTagName(column); 
+			if (nList.getLength()!=0){
+				Element e = (Element)nList.item(0);
+				return e.getAttributes();
+			}
+		}catch(Exception e){}
+		return null;
+	}
+	
+	public static boolean existReferenceColumn(String table, String column, File fT){
+		try{
+			DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+			DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+			Document doc = docBuilder.parse(fT);
+			doc.getDocumentElement().normalize();
+			
+			Element constraintElement = (Element) doc.getDocumentElement().getFirstChild().getLastChild();
+			Element fkConstraintElement = (Element) constraintElement.getLastChild();
+			for (int i=0; i<fkConstraintElement.getChildNodes().getLength(); i++){
+				Element eActual = (Element) fkConstraintElement.getChildNodes().item(i);
+				if (eActual.getAttribute("Table").equals(table)){
+					for (int j=0; j<eActual.getChildNodes().getLength(); j++){
+						Element hActual = (Element) eActual.getChildNodes().item(j);
+						if (hActual.getAttribute("Reference").equals(column)){
+							return true;
+						}
+					}
+				}
+			}
+		}catch(Exception e){}
+		return false;
+	}
+	
+	public static boolean existReferenceTable(String table, File fT){
+		try{
+			DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+			DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+			Document doc = docBuilder.parse(fT);
+			doc.getDocumentElement().normalize();
+			
+			Element constraintElement = (Element) doc.getDocumentElement().getFirstChild().getLastChild();
+			Element fkConstraintElement = (Element) constraintElement.getLastChild();
+			for (int i=0; i<fkConstraintElement.getChildNodes().getLength(); i++){
+				Element eActual = (Element) fkConstraintElement.getChildNodes().item(i);
+				if (eActual.getAttribute("Table").equals(table)){
+					return true;
+				}
+			}
+		}catch(Exception e){}
+		return false;
+	}
+	
 	public static boolean existColumnInTable(File fT, String column){
 		boolean retorno = true;
 		try{
@@ -55,28 +118,28 @@ public class Xml {
 		return retorno;
 	}
 	
-	public static void serializeHM(String DBActual,HashMap hm){
+	public static void serializeArray(String DBActual, HashMap<String,ArrayList<String>> hm){
 		try
         {
-               FileOutputStream fos = new FileOutputStream("DB/"+DBActual+"/hm.ser");
+               FileOutputStream fos = new FileOutputStream("DB/"+DBActual+"/pk.ser");
                ObjectOutputStream oos = new ObjectOutputStream(fos);
                oos.writeObject(hm);
                oos.close();
-               fos.close();
-               System.out.printf("Serialized HashMap data is saved in hm.ser");
+               fos.close();               
         }catch(Exception ioe)
          {
                ioe.printStackTrace();
          }
 	}
 	
-	public static HashMap deSerializeHM(String DBActual){
-		HashMap map = null;
+	@SuppressWarnings("unchecked")
+	public static HashMap<String,ArrayList<String>> deSerializeArray(String DBActual){
+		HashMap<String,ArrayList<String>> map = new HashMap<String, ArrayList<String>>();
 		try
 	      {
-	         FileInputStream fis = new FileInputStream("DB/"+DBActual+"/hm.ser");
+	         FileInputStream fis = new FileInputStream("DB/"+DBActual+"/pk.ser");
 	         ObjectInputStream ois = new ObjectInputStream(fis);
-	         map = (HashMap) ois.readObject();
+	         map = (HashMap<String, ArrayList<String>>) ois.readObject();
 	         ois.close();
 	         fis.close();
 	      }catch(Exception ioe)
