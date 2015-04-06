@@ -2,10 +2,10 @@ grammar GSQL;
 
 //Palabras Reservadas
 
-INT : 'int';
-CHAR : 'char';
-FLOAT : 'float';
-DATE : 'date';
+INT : 'INT';
+CHAR : 'CHAR';
+FLOAT : 'FLOAT';
+DATE : 'DATE';
 CREATE : 'CREATE';
 DATABASE : 'DATABASE';
 DATABASES : 'DATABASES';
@@ -57,7 +57,7 @@ Num : Digit(Digit)* ;
 Float : Digit(Digit)* '.' Digit(Digit)*;
 Char : '\'' (AnyAll)* '\'' ;
 Date : DateYear '-' DateMonth '-' DateDay;
-Comments: '//' ~('\r' | '\n' )*  -> channel(HIDDEN);
+Comments: ('//' ~('\r' | '\n' )* | '/*' AnyAll* '*/') -> channel(HIDDEN);
 WhitespaceDeclaration : [\t\r\n\f ]+ -> skip ;
 
 program

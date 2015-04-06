@@ -128,8 +128,19 @@ public class Xml {
                fos.close();               
         }catch(Exception ioe)
          {
-               ioe.printStackTrace();
          }
+	}
+	
+	public static ArrayList<String> getPalabrasR(){
+		ArrayList<String> palabrasR = new ArrayList<String>();
+		palabrasR.add("INT"); palabrasR.add("CHAR"); palabrasR.add("FLOAT"); palabrasR.add("DATE"); palabrasR.add("CREATE"); palabrasR.add("DATABASE");
+		palabrasR.add("DATABASES"); palabrasR.add("ALTER"); palabrasR.add("RENAME"); palabrasR.add("TO"); palabrasR.add("DROP"); palabrasR.add("USE");
+		palabrasR.add("SHOW"); palabrasR.add("TABLE"); palabrasR.add("TABLES"); palabrasR.add("PRIMARY"); palabrasR.add("KEY"); palabrasR.add("FOREIGN");
+		palabrasR.add("CHECK"); palabrasR.add("REFERENCES"); palabrasR.add("NOT"); palabrasR.add("OR"); palabrasR.add("AND"); palabrasR.add("ADD");
+		palabrasR.add("COLUMN"); palabrasR.add("COLUMNS"); palabrasR.add("CONSTRAINT"); palabrasR.add("FROM"); palabrasR.add("INSERT"); palabrasR.add("INTO"); 
+		palabrasR.add("VALUES"); palabrasR.add("UPDATE"); palabrasR.add("SET"); palabrasR.add("WHERE"); palabrasR.add("DELETE"); palabrasR.add("SELECT");
+		palabrasR.add("ORDER"); palabrasR.add("BY"); palabrasR.add("ASC"); palabrasR.add("DESC");
+		return palabrasR;
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -144,7 +155,6 @@ public class Xml {
 	         fis.close();
 	      }catch(Exception ioe)
 	      {
-	         ioe.printStackTrace();
 	      }
 		return map;
 	}
@@ -211,6 +221,64 @@ public class Xml {
 				fT.createNewFile();
 			}
 		}catch(Exception e){}
+	}
+	
+	public static void updateDeletedData(){
+		try{
+			DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+			DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+			
+			ArrayList<String> databases = new ArrayList<String>();
+			File folder = new File("DB/");
+			for (File f: folder.listFiles()){
+				ArrayList<String> tables = new ArrayList<String>();
+				if (f.isDirectory()){
+					databases.add(f.getName());
+					for (File f2: f.listFiles()){
+						if (f2.isFile() && f2.getName().contains(".xml")){
+							String n1 = f2.getName();
+							String n2 = n1.substring(0, n1.indexOf(".xml"));
+							tables.add(n2);
+						}
+					}
+					Document doc = docBuilder.parse(new File("DB/"+f.getName()+"/Tables.md"));
+					doc.getDocumentElement().normalize();
+					
+					Element rootElement = doc.getDocumentElement();
+					NodeList nodeList = rootElement.getElementsByTagName("Name");
+					for (int i=0; i<nodeList.getLength(); i++){
+						if (!tables.contains(nodeList.item(i).getTextContent())){
+							Element eParent = (Element) nodeList.item(i).getParentNode().getParentNode();
+							eParent.removeChild(nodeList.item(i).getParentNode());
+							i--;
+						}
+					}
+					TransformerFactory transformerFactory = TransformerFactory.newInstance();
+					Transformer transformer = transformerFactory.newTransformer();
+					DOMSource source = new DOMSource(doc);
+					StreamResult result = new StreamResult(new File("DB/"+f.getName()+"/Tables.md"));
+					transformer.transform(source, result);
+				}
+			}
+			Document doc = docBuilder.parse(new File("DB/Databases.md"));
+			doc.getDocumentElement().normalize();
+			
+			Element rootElement = doc.getDocumentElement();
+			NodeList nodeList = rootElement.getElementsByTagName("Name");
+			for (int i=0; i<nodeList.getLength(); i++){
+				if (!databases.contains(nodeList.item(i).getTextContent())){
+					Element eParent = (Element) nodeList.item(i).getParentNode().getParentNode();
+					eParent.removeChild(nodeList.item(i).getParentNode());
+					i--;
+				}
+			}
+			TransformerFactory transformerFactory = TransformerFactory.newInstance();
+			Transformer transformer = transformerFactory.newTransformer();
+			DOMSource source = new DOMSource(doc);
+			StreamResult result = new StreamResult(new File("DB/Databases.md"));
+			transformer.transform(source, result);
+			
+		}catch(Exception e){e.printStackTrace();}
 	}
 	
 	public static void updateDatabases(){

@@ -74,7 +74,7 @@ public class Table {
 	public void mostrarTabla(){
         try{
         	fG = new JFrame();
-        	System.out.println(nameTable);
+        	//System.out.println(nameTable);
         	String[] n = new String[nameTable.size()];
         	for (int i=0; i<nameTable.size(); i++){        		
         		n[i] = nameTable.get(i);
@@ -94,7 +94,7 @@ public class Table {
 					int numT = nameTable.indexOf(nombre);
 	                String[] columnNames = allColumn.get(numT);
 	                String[][] data = allData.get(numT);
-	                System.out.println(data.length);
+	                //System.out.println(data.length);
 	                
 	                JTable table = new JTable(data,columnNames);
 	                table.setPreferredScrollableViewportSize(new Dimension(1000, 70));

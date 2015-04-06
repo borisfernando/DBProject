@@ -113,7 +113,7 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 				Xml.changeNameD(ctx.Id(0).getText(), ctx.Id(1).getText());
 				f.renameTo(fNew);
 				f.getParentFile().mkdirs();
-				System.out.println("Corret. Database name "+ctx.Id(0).getText()+", changed to "+ctx.Id(1).getText()+".");
+				System.out.println("Correct. Database name "+ctx.Id(0).getText()+", changed to "+ctx.Id(1).getText()+".");
 			}
 			else{
 				if (!bExiste1){
@@ -132,7 +132,9 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 		if (Xml.existDB(ctx.Id().getText())){
 			if (DBActual != ""){
 				Xml.guardarDatabase(DBActual, hmDatabase);	
-				Xml.serializeArray(DBActual, PrimaryKeys);
+				if (Xml.existDB(DBActual)){
+					Xml.serializeArray(DBActual, PrimaryKeys);
+				}
 				PrimaryKeys = Xml.deSerializeArray(ctx.Id().getText());
 			}
 			hmDatabase = new HashMap<String, Document>();
@@ -168,6 +170,7 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 				String op = JOptionPane.showInputDialog(null, "¿Borrar base de datos "+ctx.Id().getText()+" con "+valores[0]+" tablas y "+valores[1]+" registros? (S/N)");
 				if (op.equals("S") || op.equals("s")){
 					Xml.deleteDatabase(ctx.Id().getText());
+					hmDatabase = new HashMap<String, Document>();
 					if (deleteDirectory(f))
 						System.out.println("Database "+ctx.Id().getText()+" deleted.");
 					else
@@ -206,7 +209,7 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 						Element eNuevo = doc.createElement(ctx.Id(i).getText());
 						Attr attr = doc.createAttribute("Type");
 						Type t = visit(ctx.type(i-1));
-						if (!t.getName().equals("char")){
+						if (!t.getName().equals("CHAR")){
 							attr.setValue(t.getName());
 							eNuevo.setAttributeNode(attr);
 						}
@@ -405,8 +408,8 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 	public Type visitActionAddColumn(GSQLParser.ActionAddColumnContext ctx) {
 		boolean paso = true; 
 		try{
-			System.out.println(ctx.Id().getText());
-			Document doc = hmDatabase.get(TableActual);
+			//Document doc = (Document) hmDatabase.get(TableActual);
+			Document doc = (Document) hmDatabase.get(TableActual).cloneNode(true);
 			doc.getDocumentElement().normalize();
 			Element rootElement = doc.getDocumentElement();
 			Element modelElement = (Element) rootElement.getFirstChild();
@@ -419,7 +422,7 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 				Type t = visit(ctx.type());
 				Element eNuevo = doc.createElement(ctx.Id().getText());
 				Attr attr = doc.createAttribute("Type");
-				if (!t.getName().equals("char")){
+				if (!t.getName().equals("CHAR")){
 					attr.setValue(t.getName());
 					eNuevo.setAttributeNode(attr);
 				}
@@ -451,15 +454,16 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 						String columnC = pK.getColumnId(j);
 						if (columnElement.getElementsByTagName(columnC).getLength()!=0){
 							eHijo.setTextContent(columnC);
+							pkElement.appendChild(eHijo);
 						}
 						else{
 							paso = false;
 							System.out.println("Column name "+columnC+" does not exist in Table "+TableActual+".");
 						}
-						pkElement.appendChild(eHijo);
 					}
 				}
 				else if(t.getName().equals("PK") && pkElement.hasChildNodes()){
+					paso = false;
 					System.out.println("False. Column "+ctx.Id().getText()+" was not added to table "+TableActual+". Theres already a PK");
 				}
 				else if(t.getName().equals("FK")){
@@ -519,8 +523,6 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 			if (paso){
 				hmDatabase.put(TableActual, doc);
 				System.out.println("True. Column "+ctx.Id().getText()+" was added to table "+TableActual);
-				
-				
 			}
 			else{
 				System.out.println("False. Column "+ctx.Id().getText()+" was not added to the table "+TableActual);
@@ -721,6 +723,8 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 						rootNode.removeChild(rootNode.getLastChild());
 						Element databaseElement = doc.createElement("Database");
 						rootNode.appendChild(databaseElement);
+						PrimaryKeys.remove(ctx.Id().getText());
+						PrimaryKeys.put(ctx.Id().getText(), new ArrayList<String>());
 						System.out.println("DELETE ("+cont+").");
 					}
 				}
@@ -764,7 +768,7 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 
 	@Override
 	public Type visitDate_literal(GSQLParser.Date_literalContext ctx) {
-		return new ValueType("date",ctx.Date().getText());
+		return new ValueType("DATE",ctx.Date().getText());
 	}
 
 	@Override
@@ -854,30 +858,45 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 			
 			if (pkElement.getAttribute("Name").equals(ctx.Id().getText())){
 				Element pkNewElement = doc.createElement("PrimaryKey");
-				constraintElement.replaceChild(pkNewElement, pkElement);
 				
 				for (int i=0; i<databaseElement.getChildNodes().getLength(); i++){
-					Node eActual = databaseElement.getChildNodes().item(i);
+					Element eActual = (Element) databaseElement.getChildNodes().item(i);
 					NamedNodeMap attributes = eActual.getAttributes();
 					for (int j=0; j<attributes.getLength(); j++){
 						attributes.removeNamedItem(attributes.item(j).getNodeName());
+						j-=1;
 					}
 				}
+				PrimaryKeys.remove(TableActual);
+				PrimaryKeys.put(TableActual, new ArrayList<String>());
+				constraintElement.replaceChild(pkNewElement, pkElement);
 				existe = true;
 			}
 			for (int i=0; i<fkElement.getChildNodes().getLength(); i++){
+				ArrayList<String> columnsArrayList = new ArrayList<String>();
 				Element eActual = (Element) fkElement.getChildNodes().item(i);
 				if (eActual.getAttribute("Name").equals(ctx.Id().getText())){
-					fkElement.removeChild(eActual);
 					existe = true;
+					for (int j=0; j<eActual.getChildNodes().getLength(); j++){
+						Element childElement = (Element) eActual.getChildNodes().item(j);
+						columnsArrayList.add(childElement.getTextContent());
+					}
+					System.out.println(columnsArrayList);
+					for (int j=0; j<columnsArrayList.size(); j++){
+						NodeList nodosList = rootElement.getElementsByTagName(columnsArrayList.get(j));
+						for (int k=0; k<nodosList.getLength(); k++){
+							Element pElement = (Element) nodosList.item(k).getParentNode();
+							pElement.removeChild(nodosList.item(k));
+						}
+					}
+					fkElement.removeChild(eActual);
 				}
 			}
+			
 			if (!existe){
 				System.out.println("Constraint "+ctx.Id().getText()+" does not exist in table "+TableActual);				
 			}
-		}catch(Exception e){
-			
-		}
+		}catch(Exception e){}
 		return null;
 	}
 
@@ -886,7 +905,7 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 		try{
 			boolean paso = true;
 			
-			Document doc = hmDatabase.get(TableActual);
+			Document doc = (Document)hmDatabase.get(TableActual);
 			doc.getDocumentElement().normalize();
 			
 			Element rootElement = doc.getDocumentElement();
@@ -899,31 +918,53 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 			
 			Type t = visit(ctx.constraint());
 			if (t.getName().equals("PK") && !pkElement.hasChildNodes()){
+				System.out.println("The rows with the same PK, will be deleted, only the first one will stay.");
+				System.out.println("Same goes to null PK's");
 				PrimaryKey pK = (PrimaryKey) t;
 				String id = pK.getId();
 				
 				Attr attr = doc.createAttribute("Name");
 				attr.setValue(id);
 				pkElement.setAttributeNode(attr);
+				ArrayList<String> columnsPK = new ArrayList<String>();
 				for (int i=0; i<pK.getLengthColumnsId(); i++){
 					Element eHijo = doc.createElement("Column");
 					String columnC = pK.getColumnId(i);
 					if (columnElement.getElementsByTagName(columnC).getLength()!=0){
 						eHijo.setTextContent(columnC);
+						columnsPK.add(columnC);
 						NodeList nList = databaseElement.getElementsByTagName(columnC);
 						for (int j=0; j<nList.getLength(); j++){
 							Element e = (Element) nList.item(j);
 							Element eParent = (Element) e.getParentNode();
 							eParent.setAttribute(columnC, e.getTextContent());
 						}
+						pkElement.appendChild(eHijo);
 					}
 					else{
 						paso = false;
+						pkElement.removeAttribute("Name");
 						System.out.println("Column name "+columnC+" does not exist in Table "+TableActual+".");
 					}
-					pkElement.appendChild(eHijo);
 				}
 				
+				for (int i=0; i<databaseElement.getChildNodes().getLength(); i++){
+					String text = "";
+					Element eActual = (Element) databaseElement.getChildNodes().item(i);
+					NamedNodeMap attributes = eActual.getAttributes();
+					for (int j=0; j<attributes.getLength()-1; j++){
+						text += attributes.item(j).getTextContent()+"_";
+					}
+					text+=attributes.item(attributes.getLength()-1).getTextContent();
+			
+					if (!text.equals("") && !PrimaryKeys.get(TableActual).contains(text)){
+						PrimaryKeys.get(TableActual).add(text);
+					}
+					else{
+						databaseElement.removeChild(eActual);
+						i--;
+					}
+				}
 			}
 			else if(t.getName().equals("PK") && pkElement.hasChildNodes()){
 				System.out.println("False. Theres already a PK");
@@ -975,7 +1016,6 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 			}
 			
 			if (paso){
-				hmDatabase.put(TableActual, doc);
 				TransformerFactory transformerFactory = TransformerFactory.newInstance();
 				Transformer transformer = transformerFactory.newTransformer();
 				DOMSource source = new DOMSource(doc);
@@ -1004,6 +1044,7 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 			if (Xml.existDB(DBActual)){
 				if (Xml.existTable(DBActual,ctx.Id(0).getText())){
 					Document doc = hmDatabase.get(ctx.Id(0).getText());
+					//Document doc =(Document) hmDatabase.get(ctx.Id(0).getText()).cloneNode(true);
 					doc.getDocumentElement().normalize();
 					
 					Element nodoRaiz = doc.getDocumentElement();
@@ -1029,7 +1070,7 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 						}
 						
 						Element databaseElement = (Element)nodoRaiz.getLastChild();
-						Element newDataElement = doc.createElement(ctx.Id(0).getText());
+						Element newDataElement = doc.createElement(ctx.Id(0).getText()+"_Row");
 						
 						boolean save = true;
 						if (ctx.Id().size()>1){
@@ -1044,7 +1085,7 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 									
 									if (vT.getName().equals(columnElement.getAttribute("Type"))){
 										String value = vT.getValue();
-										if(vT.getName().equals("char")){
+										if(vT.getName().equals("CHAR")){
 											if (Integer.parseInt(columnElement.getAttribute("Length"))>value.length()){
 												if (esPK){
 													Attr a = doc.createAttribute(columnElement.getNodeName());
@@ -1096,7 +1137,7 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 									
 									if (vT.getName().equals(e.getAttribute("Type"))){
 										String value = vT.getValue();
-										if(vT.getName().equals("char")){
+										if(vT.getName().equals("CHAR")){
 											if (Integer.parseInt(e.getAttribute("Length"))>value.length()){
 												if (esPK){
 													Attr a = doc.createAttribute(e.getNodeName());
@@ -1132,10 +1173,12 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 						}
 						if (save){
 							String t = "";
-							for (int i=0; i<attributes.size()-1; i++){
-								t += attributes.get(i).getValue().replace(" ", "")+"_";
+							if (attributes.size()>0){
+								for (int i=0; i<attributes.size()-1; i++){
+									t += attributes.get(i).getValue()+"_";
+								}
+								t+= attributes.get(attributes.size()-1).getValue();
 							}
-							t+= attributes.get(attributes.size()-1).getValue().replace(" ", "");
 							/*String cond = "[";
 							for (int i=0; i<attributes.size()-1; i++){
 								cond+="@"+attributes.get(i).getName()+"=\'"+attributes.get(i).getValue()+"\' and ";
@@ -1147,22 +1190,27 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 					        NodeList nodes = (NodeList) result;
 					        */
 					        //if (nodes.getLength()==0){
-							if (!PrimaryKeys.get(ctx.Id(0).getText()).contains(t)){
+							if (!PrimaryKeys.get(ctx.Id(0).getText()).contains(t) && t!=""){
 								PrimaryKeys.get(ctx.Id(0).getText()).add(t);
 								for (Attr a: attributes)
 									newDataElement.setAttributeNode(a);
 								databaseElement.appendChild(newDataElement);
+								//hmDatabase.put(TableActual, doc);
 								//System.out.println("Insert("+contNumRow+").");
 								contNumRow = Xml.modifyTable(DBActual, ctx.Id(0).getText())+1;
 								Xml.modifyDatabase(DBActual, "Records");
 					        }
 					        else{
 					        	String ret = "";
-					        	for (int i=0; i<attributes.size()-1; i++){
-									ret+=""+attributes.get(i).getName()+"=\'"+attributes.get(i).getValue()+"\', ";
-								}
-					        	ret+=""+attributes.get(attributes.size()-1).getName()+"=\'"+attributes.get(attributes.size()-1).getValue()+"\'";
-					        	System.out.println("Already exist a row with "+ret+" as Primary Key.");
+					        	if (attributes.size()>0){
+						        	for (int i=0; i<attributes.size()-1; i++){
+										ret+=""+attributes.get(i).getName()+"=\'"+attributes.get(i).getValue()+"\', ";
+									}
+						        	ret+=""+attributes.get(attributes.size()-1).getName()+"=\'"+attributes.get(attributes.size()-1).getValue()+"\'";
+						        	System.out.println("Already exist a row with "+ret+" as Primary Key.");
+					        	}else{
+					        		System.out.println("False. No primary key given");
+					        	}
 					        }
 						}
 						//hmDatabase.put(ctx.Id(0).getText(), doc);
@@ -1197,7 +1245,7 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 
 	@Override
 	public Type visitInt_literal(GSQLParser.Int_literalContext ctx) {
-		return new ValueType("int",ctx.Num().getText());
+		return new ValueType("INT",ctx.Num().getText());
 	}
 
 	@Override
@@ -1227,12 +1275,12 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 	@Override
 	public Type visitChar_literal(GSQLParser.Char_literalContext ctx) {	
 		String t = ctx.Char().getText().substring(1, ctx.Char().getText().length()-1);
-		return new ValueType("char", t);
+		return new ValueType("CHAR", t);
 	}
 
 	@Override
 	public Type visitFloat_literal(GSQLParser.Float_literalContext ctx) {
-		return new ValueType("float",ctx.Float().getText());
+		return new ValueType("FLOAT",ctx.Float().getText());
 	}
 
 	@Override

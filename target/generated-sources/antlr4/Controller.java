@@ -1,6 +1,7 @@
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import javax.swing.JDialog;
 
@@ -28,8 +29,11 @@ public class Controller {
 		//Future<JDialog> tree2 = parser.database().inspect(parser);
 		//parser.reset();
 		ParseTree tree = parser.program();
+		long iniciale = System.currentTimeMillis();
 		DBVisitor visitor = new DBVisitor();
 		visitor.visit(tree);
+		long finale = System.currentTimeMillis();
+		System.out.println("MEMORIA: "+TimeUnit.MILLISECONDS.toSeconds(finale - iniciale));
 		hm = visitor.getHMDatabase();
 		arrayListPk = visitor.getArrayListPk();
 		//hmPk = visitor.getHmPk();

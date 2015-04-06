@@ -7,6 +7,7 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 
@@ -51,6 +52,8 @@ public class GUI extends JFrame {
 			                if (confirm == 0) {
 			                	String database = DBVisitor.returnDBActual();
 			                	Xml.guardarDatabase(database, compile.getHm());
+			                	Xml.updateDatabases();
+			                	Xml.updateDeletedData();
 			                	System.exit(0);
 			                }
 			            }
@@ -158,13 +161,37 @@ public class GUI extends JFrame {
 		compilar.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
-				long iniciale = System.currentTimeMillis();
-				if (!bProgram)
+				String textoN = "";
+				if (!bProgram){
 					texto = inputText.getText();
+				}
+				
+				ArrayList<String> pR = Xml.getPalabrasR();
+				texto = texto.replace("(", " ( ").replace(",", " , ").replace(")", " ) ");
+				String[] textoStrings = texto.split("[ |\n|\t]+");
+				String[] textoStrings2 = texto.split("[\\W\\d]+");
+				int j=0;
+				for (int i=0; i< textoStrings.length; i++){
+					if (textoStrings2.length<=j || !textoStrings[i].contains(textoStrings2[j])){
+						textoN+=textoStrings[i]+" ";
+					}else{
+						String textoOriginal = textoStrings[i];
+						String textoCambiar = textoStrings2[j];
+						if (pR.contains(textoCambiar.toUpperCase())){
+							textoN+=textoOriginal.replace(textoCambiar, textoCambiar.toUpperCase())+" ";
+						}
+						else{
+							textoN+=textoOriginal+" ";
+						}
+						j++;
+					}
+				}
+				//System.out.println(textoN);
+				
+				texto = textoN;
 				compile = new Controller();
 				compile.parse(texto);
-				long finale = System.currentTimeMillis();
-				System.out.println("MEMORIA: "+TimeUnit.MILLISECONDS.toSeconds(finale - iniciale));
+				
 				inputText.setEditable(true);
 				cargar.setEnabled(true);
 	        	update.setEnabled(true);
@@ -179,8 +206,11 @@ public class GUI extends JFrame {
 				long iniciale = System.currentTimeMillis();
 				String database = DBVisitor.returnDBActual();
 				Xml.guardarDatabase(database, compile.getHm());
-				Xml.serializeArray(database, compile.getArrayListPk());
+				if (database!=""){
+					Xml.serializeArray(database, compile.getArrayListPk());
+				}
 				Xml.updateDatabases();
+				Xml.updateDeletedData();
 				long finale = System.currentTimeMillis();
 				System.out.println("GUARDAR "+TimeUnit.MILLISECONDS.toSeconds(finale - iniciale));
 				
