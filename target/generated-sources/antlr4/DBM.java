@@ -20,13 +20,31 @@ import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
-public class Xml {
+public class DBM {
+	
 	/*
-	 * Method: XmlMethods
-	 * Parameter: 
-	 * Return: 
-	 * Use: constructor for the xml methods
+	 * Method deleteDirectory
+	 * Parameter File directory
+	 * Return boolean delete
+	 * Use: returns true if the directory was deleted, false otherwise
 	 */
+	
+	public static boolean deleteDirectory(File directory) {
+	    if(directory.exists()){
+	        File[] files = directory.listFiles();
+	        if(null!=files){
+	            for(int i=0; i<files.length; i++) {
+	                if(files[i].isDirectory()) {
+	                    deleteDirectory(files[i]);
+	                }
+	                else {
+	                    files[i].delete();
+	                }
+	            }
+	        }
+	    }
+	    return(directory.delete());
+	}
 	
 	public static Document getElementByName(File f){
 		Document doc = null;
@@ -129,18 +147,6 @@ public class Xml {
         }catch(Exception ioe)
          {
          }
-	}
-	
-	public static ArrayList<String> getPalabrasR(){
-		ArrayList<String> palabrasR = new ArrayList<String>();
-		palabrasR.add("INT"); palabrasR.add("CHAR"); palabrasR.add("FLOAT"); palabrasR.add("DATE"); palabrasR.add("CREATE"); palabrasR.add("DATABASE");
-		palabrasR.add("DATABASES"); palabrasR.add("ALTER"); palabrasR.add("RENAME"); palabrasR.add("TO"); palabrasR.add("DROP"); palabrasR.add("USE");
-		palabrasR.add("SHOW"); palabrasR.add("TABLE"); palabrasR.add("TABLES"); palabrasR.add("PRIMARY"); palabrasR.add("KEY"); palabrasR.add("FOREIGN");
-		palabrasR.add("CHECK"); palabrasR.add("REFERENCES"); palabrasR.add("NOT"); palabrasR.add("OR"); palabrasR.add("AND"); palabrasR.add("ADD");
-		palabrasR.add("COLUMN"); palabrasR.add("COLUMNS"); palabrasR.add("CONSTRAINT"); palabrasR.add("FROM"); palabrasR.add("INSERT"); palabrasR.add("INTO"); 
-		palabrasR.add("VALUES"); palabrasR.add("UPDATE"); palabrasR.add("SET"); palabrasR.add("WHERE"); palabrasR.add("DELETE"); palabrasR.add("SELECT");
-		palabrasR.add("ORDER"); palabrasR.add("BY"); palabrasR.add("ASC"); palabrasR.add("DESC");
-		return palabrasR;
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -416,7 +422,7 @@ public class Xml {
 		}catch(Exception e){}
 	}
 	
-	public static void guardarDatabase(String database, HashMap<String, Document> hm){
+	public static void saveDatabase(String database, HashMap<String, Document> hm){
 		try{
 			for ( String key : hm.keySet() ) {
 			    File fT = new File("DB/"+database+"/"+key+".xml");

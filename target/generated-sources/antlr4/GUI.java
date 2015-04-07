@@ -7,7 +7,6 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 
@@ -50,10 +49,7 @@ public class GUI extends JFrame {
 			            public void windowClosing(WindowEvent e) {
 			                int confirm = JOptionPane.showOptionDialog(null, "¿Desea guardar los cambios antes de salir?", "Exit Confirmation", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, null, null);
 			                if (confirm == 0) {
-			                	String database = DBVisitor.returnDBActual();
-			                	Xml.guardarDatabase(database, compile.getHm());
-			                	Xml.updateDatabases();
-			                	Xml.updateDeletedData();
+			                	compile.update();
 			                	System.exit(0);
 			                }
 			            }
@@ -161,7 +157,6 @@ public class GUI extends JFrame {
 		compilar.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
-				String textoN = "";
 				if (!bProgram){
 					texto = inputText.getText();
 				}
@@ -181,15 +176,9 @@ public class GUI extends JFrame {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
 				long iniciale = System.currentTimeMillis();
-				String database = DBVisitor.returnDBActual();
-				Xml.guardarDatabase(database, compile.getHm());
-				if (database!=""){
-					Xml.serializeArray(database, compile.getArrayListPk());
-				}
-				Xml.updateDatabases();
-				Xml.updateDeletedData();
+				compile.update();
 				long finale = System.currentTimeMillis();
-				System.out.println("GUARDAR "+TimeUnit.MILLISECONDS.toSeconds(finale - iniciale));
+				System.out.println("GUARDAR "+TimeUnit.MILLISECONDS.toSeconds(finale - iniciale)+ " segundos.");
 				
 			}
 		});

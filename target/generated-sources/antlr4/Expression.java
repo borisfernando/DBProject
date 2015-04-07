@@ -4,7 +4,6 @@ public class Expression extends DataType{
 	private boolean negated;
 	private boolean error;
 	
-	public Expression(){}
 	public Expression(String name, String condition, boolean negated, boolean error){
 		super(name);
 		this.condition = condition;
@@ -14,7 +13,6 @@ public class Expression extends DataType{
 	
 	@Override
 	public String getName() {
-		// TODO Auto-generated method stub
 		return super.getName();
 	}
 	

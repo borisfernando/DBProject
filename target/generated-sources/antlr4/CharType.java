@@ -2,11 +2,8 @@
 public class CharType extends DataType{
 	private int cantidad;
 	
-	public CharType(String name){
-		super(name);
-	}
 	public CharType(String name, int cantidad){
-		this.name = name;
+		super(name);
 		this.cantidad = cantidad;
 	}
 

@@ -1,24 +1,15 @@
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-
-import javax.swing.JDialog;
 
 import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTree;
-import org.w3c.dom.Document;
 
 
 public class Controller {
-		
-	HashMap<String, Document> hm;
-	HashMap<String,ArrayList<String>> arrayListPk;
+	DBVisitor visitor;
 	
 	public Controller(){
-		hm = new HashMap<String, Document>();
-		arrayListPk = new HashMap<String, ArrayList<String>>();
+		visitor = new DBVisitor();
 	}
 	
 	public void parse(String t){
@@ -26,28 +17,15 @@ public class Controller {
 		GSQLLexer lexer = new GSQLLexer(input);
 		CommonTokenStream tokens = new CommonTokenStream(lexer);
 		GSQLParser parser = new GSQLParser(tokens);
-	//Future<JDialog> tree2 = parser.database().inspect(parser);
-	//parser.reset();
 		ParseTree tree = parser.program();
 		long iniciale = System.currentTimeMillis();
-		DBVisitor visitor = new DBVisitor();
 		visitor.visit(tree);
 		long finale = System.currentTimeMillis();
-		System.out.println("MEMORIA: "+TimeUnit.MILLISECONDS.toSeconds(finale - iniciale));
-		hm = visitor.getHMDatabase();
-		arrayListPk = visitor.getArrayListPk();
-		//hmPk = visitor.getHmPk();
-		
-		//System.out.println("Parseado exitosamente");
+		System.out.println("PARSEO: "+TimeUnit.MILLISECONDS.toSeconds(finale - iniciale)+ " segundos.");
 	}
 	
-	public HashMap<String, Document> getHm(){
-		return hm;
+	public void update(){
+		visitor.update();
 	}
-	
-	public HashMap<String,ArrayList<String>> getArrayListPk(){
-		return arrayListPk;
-	}
-	
 	
 }
