@@ -1,5 +1,7 @@
 import java.io.File;
 
+
+
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpression;
@@ -23,7 +25,7 @@ import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
-import sun.org.mozilla.javascript.internal.ast.NewExpression;
+//import sun.org.mozilla.javascript.internal.ast.NewExpression;
 
 public class DBVisitor extends GSQLBaseVisitor<Type>{
 	private static String DBActual = "";
@@ -209,14 +211,14 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 						Element eNuevo = doc.createElement(ctx.Id(i).getText());
 						Attr attr = doc.createAttribute("Type");
 						Type t = visit(ctx.type(i-1));
-						if (!t.getName().equals("CHAR")){
-							attr.setValue(t.getName());
+						if (!t.getName().toUpperCase().equals("CHAR")){
+							attr.setValue(t.getName().toUpperCase());
 							eNuevo.setAttributeNode(attr);
 						}
 						else{
 							CharType cT = (CharType) t;
 							Attr attrL = doc.createAttribute("Length");
-							attr.setValue(cT.getName());
+							attr.setValue(cT.getName().toUpperCase());
 							attrL.setValue(""+cT.getCantidad());
 							eNuevo.setAttributeNode(attrL);
 							eNuevo.setAttributeNode(attr);
@@ -370,6 +372,25 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 					
 					for (int i=0; i<databaseElement.getChildNodes().getLength(); i++){
 						doc.renameNode(databaseElement.getChildNodes().item(i), ctx.Id(1).getText(), ctx.Id(1).getText());
+					}
+					
+					File[] folder = new File("DB/"+DBActual+"/").listFiles();
+					for (File fFolder: folder){
+						if (fFolder.isFile() && fFolder.getName().contains(".xml")){
+							Document doc2 = docBuilder.parse(fFolder);
+							doc2.getDocumentElement().normalize();
+							Element rootElement2 = doc2.getDocumentElement();
+							NodeList listFK = rootElement2.getElementsByTagName("FK");
+							for (int i=0; i<listFK.getLength(); i++){
+								Element eFK = (Element) listFK.item(i);
+								eFK.setAttribute("Table", ctx.Id(1).getText());
+							}
+							TransformerFactory transformerFactory = TransformerFactory.newInstance();
+							Transformer transformer = transformerFactory.newTransformer();
+							DOMSource source = new DOMSource(doc2);
+							StreamResult result = new StreamResult(fFolder);
+							transformer.transform(source, result);
+						}
 					}
 					
 					TransformerFactory transformerFactory = TransformerFactory.newInstance();
@@ -636,8 +657,39 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 	
 	@Override
 	public Type visitEqOpExpression(GSQLParser.EqOpExpressionContext ctx) {
-		// TODO Auto-generated method stub
-		return super.visitEqOpExpression(ctx);
+		String newConditionString = "";
+		Expression eR = (Expression) visit(ctx.eqExpression());
+		String relation = ctx.eqOp().getText();
+		if (relation.equals("<>")){
+			relation = "!=";
+		}
+		Expression eU = (Expression) visit(ctx.relExpression());
+		boolean error = false;
+		
+		if (eR.getName().equals("Unary")){
+			String eRValue = eR.getCondition();
+			String eUValue = eU.getCondition();
+			
+			Document doc = hmDatabase.get(TableActual);
+			doc.getDocumentElement().normalize();
+			
+			Element modelElement = (Element) doc.getDocumentElement().getFirstChild().getFirstChild();
+			if (modelElement.getElementsByTagName(eRValue).getLength()!=0){
+				newConditionString+=eRValue+relation+eUValue+"";
+			}else if (modelElement.getElementsByTagName(eUValue).getLength()!=0){
+				newConditionString+=eUValue+relation+eRValue+"";
+			}
+			else{
+				error = true;
+				System.out.println("Error. Id not declarated.");
+			}
+		}
+		else{
+			//Falta ver este
+			// TODO Auto-generated method stub
+		}
+		// por el momento false
+		return new Expression("Eq",newConditionString,false,(eR.eError() || eU.eError() || error));
 	}
 
 	@Override
@@ -700,21 +752,36 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 		try{
 			if (Xml.existDB(DBActual)){
 				if (Xml.existTable(DBActual,ctx.Id().getText())){
+					TableActual = ctx.Id().getText();
 					Document doc = hmDatabase.get(ctx.Id().getText());
 					doc.getDocumentElement().normalize();
+					Element rootElement = doc.getDocumentElement();
+					
 					int cont = 0;
 					if (ctx.WHERE() != null){
-						// ACA IRIA POR SI QUISIERAMOS SABER UN VALOR DE UN NODO
-						NodeList nodos = doc.getElementsByTagName("ACA");
-						for (int i=0; i<nodos.getLength(); i++){
-							Node nodoActual = nodos.item(i);
-							//ACA IRIA COMPARAR EL VALOR DE UN NODO
-							if (nodoActual.getTextContent().equals("ACA2")){
-								if (nodoActual.getNodeType() == Node.ELEMENT_NODE) {
-									Element elActual = (Element) nodoActual;
-									
-								}
-							}
+						Expression eType = (Expression) visit(ctx.expression());
+						if (!eType.eError()){
+							String cond = "["+eType.getCondition()+"]";
+							
+							XPathFactory xPathfactory = XPathFactory.newInstance();
+							XPath xpath = xPathfactory.newXPath();
+							
+							String exp = "/Table/Database/"+TableActual+"_Row"+cond;
+							System.out.println(exp);
+							XPathExpression expr = xpath.compile(exp);
+							Object result = expr.evaluate(doc, XPathConstants.NODESET);
+					        NodeList nodes = (NodeList) result;
+					        Element databaseElement = (Element) rootElement.getLastChild();
+					        
+					        for (int i=0; i<nodes.getLength(); i++){
+					        	Element e = (Element) nodes.item(i);
+					        	PrimaryKeys.get(TableActual).remove(e.getAttributes().item(0));
+					        	databaseElement.removeChild(nodes.item(i));
+					        	cont++;
+					        }
+					        System.out.println("DELETE ("+cont+").");
+						}else{
+							System.out.println("Error in expression.");
 						}
 					}
 					else{
@@ -772,9 +839,26 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 	}
 
 	@Override
-	public Type visitUnExpression(GSQLParser.UnExpressionContext ctx) {
-		// TODO Auto-generated method stub
-		return super.visitUnExpression(ctx);
+	public Type visitUnExpLiteral(GSQLParser.UnExpLiteralContext ctx) {
+		ValueType vT = (ValueType) visit(ctx.literal());
+		if (vT.getName().equals("CHAR")){
+			return new Expression("Unary","\'"+vT.getValue()+"\'",false,false);
+		}
+		else{
+			return new Expression("Unary",vT.getValue(),false,false);
+		}
+		
+	}
+
+	@Override
+	public Type visitUnExpNegatedLiteral(GSQLParser.UnExpNegatedLiteralContext ctx) {
+		ValueType vT = (ValueType) visit(ctx.literal());
+		if (vT.getName().equals("CHAR")){
+			return new Expression("Unary","\'"+vT.getValue()+"\'",true,false);
+		}
+		else{
+			return new Expression("Unary",vT.getValue(),true,false);
+		}
 	}
 
 	@Override
@@ -832,14 +916,22 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 
 	@Override
 	public Type visitExpAndExpression(GSQLParser.ExpAndExpressionContext ctx) {
-		// TODO Auto-generated method stub
-		return super.visitExpAndExpression(ctx);
+		return visit(ctx.andExpression());
 	}
 
 	@Override
 	public Type visitCondOrExpression(GSQLParser.CondOrExpressionContext ctx) {
-		// TODO Auto-generated method stub
-		return super.visitCondOrExpression(ctx);
+		String newConditionString = "";
+		Expression eR = (Expression) visit(ctx.expression());
+		Expression eU = (Expression) visit(ctx.andExpression());
+		
+		String eRValue = eR.getCondition();
+		String eUValue = eU.getCondition();
+		
+		newConditionString += eRValue+" or "+eUValue;
+		
+		//por el momento false, pero falta ver si hay alguno false
+		return new Expression("Or",newConditionString,false, (eR.eError() || eU.eError()));
 	}
 	
 	@Override
@@ -1033,8 +1125,17 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 
 	@Override
 	public Type visitCondExpression(GSQLParser.CondExpressionContext ctx) {
-		// TODO Auto-generated method stub
-		return super.visitCondExpression(ctx);
+		String newConditionString = "";
+		Expression eR = (Expression) visit(ctx.andExpression());
+		Expression eU = (Expression) visit(ctx.eqExpression());
+		
+		String eRValue = eR.getCondition();
+		String eUValue = eU.getCondition();
+		
+		newConditionString += eRValue+" and "+eUValue;
+		
+		//por el momento false, pero falta ver si hay alguno false
+		return new Expression("And",newConditionString,false, (eR.eError() || eU.eError()));
 	}
 
 	@Override
@@ -1053,11 +1154,25 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 					Element columnsElement = (Element)modelElement.getFirstChild();
 					Element constraintElement = (Element)modelElement.getLastChild();
 					Element pkElement = (Element)constraintElement.getFirstChild();
+					Element fkElement = (Element)constraintElement.getLastChild();
 					
 					ArrayList<String> pkColumns = Xml.getColumnsPKTable(modelElement);
 					ArrayList<Attr> attributes = new ArrayList<Attr>();
-					
+					/* ACA VA FOREIGN KEY */
 					ArrayList<String> columnAgregadas = new ArrayList<String>();
+					HashMap<String, ArrayList<String>> todasFk = new HashMap<String, ArrayList<String>>();
+					for (int i=0; i<fkElement.getChildNodes().getLength(); i++){
+						Element fkActual = (Element) fkElement.getChildNodes().item(i);
+						String nombre = fkActual.getAttribute("Table");
+						ArrayList<String> arrayActual = new ArrayList<String>();
+						for (int j=0; j<fkActual.getChildNodes().getLength(); j++){
+							Element fkColumnActual = (Element) fkActual.getChildNodes().item(j);
+							arrayActual.add(fkColumnActual.getAttribute("Reference"));
+						}
+						todasFk.put(nombre, arrayActual);
+					}
+					
+					
 					//String pkName = Xml.getPrimaryKeyTable(modelElement);
 										
 					XPathFactory xPathfactory = XPathFactory.newInstance();
@@ -1073,6 +1188,8 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 						Element newDataElement = doc.createElement(ctx.Id(0).getText()+"_Row");
 						
 						boolean save = true;
+						String pKeyString = "";
+						//Por si te dan las columnas.
 						if (ctx.Id().size()>1){
 							for (int i=1; i<ctx.Id().size(); i++){
 								NodeList columnList = modelElement.getElementsByTagName(ctx.Id(i).getText());
@@ -1083,14 +1200,15 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 									boolean esPK = pkColumns.contains(columnElement.getNodeName());
 									ValueType vT = (ValueType) visit(ctx.literal(i-1));
 									
-									if (vT.getName().equals(columnElement.getAttribute("Type"))){
+									String valType = vT.getName().toUpperCase();
+					        		String valColumn = columnElement.getAttribute("Type").toUpperCase();
+									
+									if (valType.equals(valColumn)){
 										String value = vT.getValue();
 										if(vT.getName().equals("CHAR")){
 											if (Integer.parseInt(columnElement.getAttribute("Length"))>value.length()){
 												if (esPK){
-													Attr a = doc.createAttribute(columnElement.getNodeName());
-													a.setValue(value);
-													attributes.add(a);
+													pKeyString += value+"_";
 												}
 												newElement.setTextContent(value);
 											}
@@ -1101,9 +1219,7 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 										}
 										else{
 											if (esPK){
-												Attr a = doc.createAttribute(columnElement.getNodeName());
-												a.setValue(value);
-												attributes.add(a);
+												pKeyString += value+"_";
 											}
 											newElement.setTextContent(value);
 										}
@@ -1127,6 +1243,7 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 								}
 							}
 						}
+						//Por si no te dan las columnas.
 						else{
 							for (int i=0; i<columnsElement.getChildNodes().getLength(); i++){
 								Element e = (Element) columnsElement.getChildNodes().item(i);
@@ -1134,15 +1251,15 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 								boolean esPK = pkColumns.contains(e.getNodeName());
 								if (ctx.literal(i)!=null){
 									ValueType vT = (ValueType) visit(ctx.literal(i));
+									String valType = vT.getName().toUpperCase();
+					        		String valColumn = e.getAttribute("Type").toUpperCase();
 									
-									if (vT.getName().equals(e.getAttribute("Type"))){
+									if (valType.equals(valColumn)){
 										String value = vT.getValue();
 										if(vT.getName().equals("CHAR")){
 											if (Integer.parseInt(e.getAttribute("Length"))>value.length()){
 												if (esPK){
-													Attr a = doc.createAttribute(e.getNodeName());
-													a.setValue(value);
-													attributes.add(a);
+													pKeyString += value+"_";
 												}
 												newElement.setTextContent(value);
 											}
@@ -1153,9 +1270,7 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 										}
 										else{
 											if (esPK){
-												Attr a = doc.createAttribute(e.getNodeName());
-												a.setValue(value);
-												attributes.add(a);
+												pKeyString += value+"_";
 											}
 											newElement.setTextContent(value);
 										}
@@ -1172,28 +1287,13 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 							}
 						}
 						if (save){
-							String t = "";
-							if (attributes.size()>0){
-								for (int i=0; i<attributes.size()-1; i++){
-									t += attributes.get(i).getValue()+"_";
-								}
-								t+= attributes.get(attributes.size()-1).getValue();
-							}
-							/*String cond = "[";
-							for (int i=0; i<attributes.size()-1; i++){
-								cond+="@"+attributes.get(i).getName()+"=\'"+attributes.get(i).getValue()+"\' and ";
-							}
-							cond+="@"+attributes.get(attributes.size()-1).getName()+"=\'"+attributes.get(attributes.size()-1).getValue()+"\']";
-							String exp = "//"+ctx.Id(0).getText()+cond;
-							XPathExpression expr = xpath.compile(exp);
-							Object result = expr.evaluate(doc, XPathConstants.NODESET);
-					        NodeList nodes = (NodeList) result;
-					        */
-					        //if (nodes.getLength()==0){
+							String t = pKeyString.substring(0, pKeyString.length()-1);
 							if (!PrimaryKeys.get(ctx.Id(0).getText()).contains(t) && t!=""){
 								PrimaryKeys.get(ctx.Id(0).getText()).add(t);
-								for (Attr a: attributes)
-									newDataElement.setAttributeNode(a);
+								String nombrePK = pkElement.getAttribute("Name");
+								Attr a = doc.createAttribute(nombrePK);
+								a.setValue(t);
+								newDataElement.setAttributeNode(a);
 								databaseElement.appendChild(newDataElement);
 								//hmDatabase.put(TableActual, doc);
 								//System.out.println("Insert("+contNumRow+").");
@@ -1250,14 +1350,41 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 
 	@Override
 	public Type visitEqAndExpression(GSQLParser.EqAndExpressionContext ctx) {
-		// TODO Auto-generated method stub
-		return super.visitEqAndExpression(ctx);
+		return visit(ctx.eqExpression());
 	}
 
 	@Override
 	public Type visitRelOpExpression(GSQLParser.RelOpExpressionContext ctx) {
-		// TODO Auto-generated method stub
-		return super.visitRelOpExpression(ctx);
+		String newConditionString = "";
+		Expression eR = (Expression) visit(ctx.relExpression());
+		String relation = ctx.relOp().getText();
+		Expression eU = (Expression) visit(ctx.unExpression());
+		boolean error = false;
+		
+		if (eR.getName().equals("Unary")){
+			String eRValue = eR.getCondition();
+			String eUValue = eU.getCondition();
+			
+			Document doc = hmDatabase.get(TableActual);
+			doc.getDocumentElement().normalize();
+			
+			Element modelElement = (Element) doc.getDocumentElement().getFirstChild().getFirstChild();
+			if (modelElement.getElementsByTagName(eRValue).getLength()!=0){
+				newConditionString+=eRValue+relation+eUValue+"";
+			}else if (modelElement.getElementsByTagName(eUValue).getLength()!=0){
+				newConditionString+=eRValue+relation+eUValue+"";
+			}
+			else{
+				error = true;
+				System.out.println("Error. Id not declarated.");
+			}
+		}
+		else{
+			//Falta ver este
+			// TODO Auto-generated method stub
+		}
+		// por el momento false
+		return new Expression("Rel",newConditionString,false, (eU.eError() || eU.eError() || error));
 	}
 
 	@Override
@@ -1282,11 +1409,15 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 	public Type visitFloat_literal(GSQLParser.Float_literalContext ctx) {
 		return new ValueType("FLOAT",ctx.Float().getText());
 	}
+	
+	@Override
+	public Type visitId_literal(GSQLParser.Id_literalContext ctx) {
+		return new ValueType("ID",ctx.Id().getText());
+	}
 
 	@Override
 	public Type visitEqRelExpression(GSQLParser.EqRelExpressionContext ctx) {
-		// TODO Auto-generated method stub
-		return super.visitEqRelExpression(ctx);
+		return visit(ctx.relExpression());
 	}
 
 	@Override
@@ -1303,8 +1434,7 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 
 	@Override
 	public Type visitRelSumExpression(GSQLParser.RelSumExpressionContext ctx) {
-		// TODO Auto-generated method stub
-		return super.visitRelSumExpression(ctx);
+		return visit(ctx.unExpression());
 	}
 
 	@Override
@@ -1313,40 +1443,105 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 		try{
 			if (Xml.existDB(DBActual)){
 				if (Xml.existTable(DBActual,ctx.Id(0).getText())){
+					TableActual = ctx.Id(0).getText();
 					Document doc = hmDatabase.get(ctx.Id(0).getText());
 					doc.getDocumentElement().normalize();
+					
+					Element rootElement = doc.getDocumentElement();
+					Element columnElement = (Element) rootElement.getFirstChild().getFirstChild();
+					Element databaseElement = (Element) rootElement.getLastChild();
+					
 					int cont = 0;
 					if (ctx.WHERE() != null){
-						// ACA IRIA POR SI QUISIERAMOS SABER UN VALOR DE UN NODO
-						NodeList nodos = doc.getElementsByTagName("ACA");
-						for (int i=0; i<nodos.getLength(); i++){
-							Node nodoActual = nodos.item(i);
-							//ACA IRIA COMPARAR EL VALOR DE UN NODO
-							if (nodoActual.getTextContent().equals("ACA2")){
-								if (nodoActual.getNodeType() == Node.ELEMENT_NODE) {
-									Element elActual = (Element) nodoActual;
-									for (int j=1; j<ctx.Id().size(); j++){
-										NodeList n = elActual.getElementsByTagName(ctx.Id(j).getText());
-										n.item(0).setTextContent(ctx.Char(j-1).getText());
+						Expression eType = (Expression) visit(ctx.expression());
+						if (!eType.eError()){
+							String cond = "["+eType.getCondition()+"]";
+							
+							XPathFactory xPathfactory = XPathFactory.newInstance();
+							XPath xpath = xPathfactory.newXPath();
+							
+							String exp = "/Table/Database/"+TableActual+"_Row"+cond;
+							System.out.println(exp);
+							
+							XPathExpression expr = xpath.compile(exp);
+							Object result = expr.evaluate(doc, XPathConstants.NODESET);
+					        NodeList nodes = (NodeList) result;
+					        
+					        for (int i=0; i<nodes.getLength(); i++){
+					        	for (int j=1; j<ctx.Id().size(); j++){
+					        		String columnString = ctx.Id(j).getText();
+					        		Element columnValueElement = (Element) columnElement.getElementsByTagName(columnString).item(0);
+					        		ValueType vT = (ValueType) visit(ctx.literal(j-1));
+					        		String valType = vT.getName().toUpperCase();
+					        		String valColumn = columnValueElement.getAttribute("Type").toUpperCase();
+					        		if (valType.equals(valColumn)){
+										String value = vT.getValue();
+										if(vT.getName().equals("CHAR")){
+											if (Integer.parseInt(columnValueElement.getAttribute("Length"))>value.length()){
+												Element nElement = (Element) nodes.item(i);
+												Element valueElement = (Element) nElement.getElementsByTagName(ctx.Id(j).getText()).item(0);
+												valueElement.setTextContent(value);
+												cont++;
+											}
+											else{
+												System.out.println("Error in Insert. Char \""+value+"\" greater than expected.");
+											}
+										}
+										else{
+											Element nElement = (Element) nodes.item(i);
+											Element valueElement = (Element) nElement.getElementsByTagName(ctx.Id(j).getText()).item(0);
+											valueElement.setTextContent(value);
+											cont++;
+										}
+									}
+									else{
+										System.out.println("Error in Insert. Found "+vT.getName()+" expected "+columnElement.getAttribute("Type"));
+									}
+					        	}
+					        }
+							System.out.println("UPDATE("+cont+") con exito.");
+						}
+				        else{
+				        	System.out.println("Error in expression");
+				        }
+					}
+					else{
+						for (int i=1; i<ctx.Id().size(); i++){
+							String columnString = ctx.Id(i).getText();
+							
+							Element columnValueElement = (Element) columnElement.getElementsByTagName(columnString).item(0);
+
+							ValueType vT = (ValueType) visit(ctx.literal(i-1));
+							
+							String valType = vT.getName().toUpperCase();
+			        		String valColumn = columnValueElement.getAttribute("Type").toUpperCase();
+							
+							if (valType.equals(valColumn)){
+								String value = vT.getValue();
+								if(vT.getName().equals("CHAR")){
+									if (Integer.parseInt(columnValueElement.getAttribute("Length"))>value.length()){
+										NodeList nList = databaseElement.getElementsByTagName(columnString);
+										for (int j=0; j<nList.getLength(); j++){
+											nList.item(j).setTextContent(value);
+											cont++;
+										}
+									}
+									else{
+										System.out.println("Error in Insert. Char \""+value+"\" greater than expected.");
+									}
+								}
+								else{
+									NodeList nList = databaseElement.getElementsByTagName(columnString);
+									for (int j=0; j<nList.getLength(); j++){
+										nList.item(j).setTextContent(value);
 										cont++;
 									}
 								}
 							}
-						}
-						System.out.println("UPDATE("+cont+") con exito.");
-					}
-					else{
-						for (int i=1; i<ctx.Id().size(); i++){
-							NodeList nodos = doc.getElementsByTagName(ctx.Id(i).getText());
-							if (nodos.getLength()!=0){
-								for (int j=1; j<nodos.getLength(); j++){
-									nodos.item(j).setTextContent(ctx.Char(i-1).getText());
-									cont++;
-								}
-							}
 							else{
-								System.out.println("Id "+ctx.Id(i).getText()+" does not exist in table "+ctx.Id(0).getText());
+								System.out.println("Error in Insert. Found "+vT.getName()+" expected "+columnElement.getAttribute("Type"));
 							}
+							
 						}
 						System.out.println("UPDATE("+cont+") con exito.");
 					}

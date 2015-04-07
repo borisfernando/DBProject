@@ -2,46 +2,46 @@ grammar GSQL;
 
 //Palabras Reservadas
 
-INT : 'INT';
-CHAR : 'CHAR';
-FLOAT : 'FLOAT';
-DATE : 'DATE';
-CREATE : 'CREATE';
-DATABASE : 'DATABASE';
-DATABASES : 'DATABASES';
-ALTER : 'ALTER';
-RENAME : 'RENAME';
-TO : 'TO';
-DROP : 'DROP';
-USE : 'USE';
-SHOW : 'SHOW';
-TABLE : 'TABLE';
-TABLES : 'TABLES';
-PRIMARY : 'PRIMARY';
-KEY : 'KEY';
-FOREIGN : 'FOREIGN';
-CHECK : 'CHECK';
-REFERENCES : 'REFERENCES';
-NOT : 'NOT';
-OR : 'OR';
-AND : 'AND';
-ADD : 'ADD';
-COLUMN : 'COLUMN';
-COLUMNS : 'COLUMNS';
-CONSTRAINT : 'CONSTRAINT';
-FROM : 'FROM';
-INSERT : 'INSERT';
-INTO : 'INTO';
-VALUES : 'VALUES';
-UPDATE : 'UPDATE';
-SET : 'SET';
-WHERE : 'WHERE';
-DELETE : 'DELETE';
-SELECT : 'SELECT';
-ORDER : 'ORDER';
-BY : 'BY';
-ASC : 'ASC';
-DESC : 'DESC';
+INT : 'INT' | 'Int' | 'int';
+CHAR : 'CHAR' | 'Char' | 'char';
+FLOAT : 'FLOAT' | 'Float' | 'float';
+DATE : 'DATE' | 'Date' | 'date';
+CREATE : 'CREATE' | 'Create' | 'create';
+DATABASE : 'DATABASE' | 'Database' | 'database';
+DATABASES : 'DATABASES' | 'Databases' | 'databases';
+ALTER : 'ALTER' | 'Alter' | 'alter';
+RENAME : 'RENAME' | 'Rename' | 'rename';
+TO : 'TO' | 'To' | 'to';
+DROP : 'DROP' | 'Drop' | 'drop';
+USE : 'USE' | 'Use' | 'use';
+SHOW : 'SHOW' | 'Show' | 'show';
+TABLE : 'TABLE' | 'Table' | 'table';
+TABLES : 'TABLES' | 'Tables' | 'tables';
+PRIMARY : 'PRIMARY' | 'Primary' | 'primary';
+KEY : 'KEY' | 'Key' | 'key';
+FOREIGN : 'FOREIGN' | 'Foreign' | 'foreign';
+CHECK : 'CHECK' | 'Check' | 'check';
+REFERENCES : 'REFERENCES' | 'References' | 'references';
+NOT : 'NOT' | 'Not' | 'not';
+OR : 'OR' | 'Or' | 'or';
+AND : 'AND' | 'And' | 'and';
+ADD : 'ADD' | 'Add' | 'add';
+COLUMN : 'COLUMN' | 'Column' | 'column';
+COLUMNS : 'COLUMNS' | 'Columns' | 'columns';
+CONSTRAINT : 'CONSTRAINT' | 'Constraint' | 'constraint';
+FROM : 'FROM' | 'From' | 'from';
+INSERT : 'INSERT' | 'Insert' | 'insert';
+INTO : 'INTO' | 'Into' | 'into';
+VALUES : 'VALUES' | 'Values' | 'values';
+UPDATE : 'UPDATE' | 'Update' | 'update';
+SET : 'SET' | 'Set' | 'set';
+WHERE : 'WHERE' | 'Where' | 'where';
+DELETE : 'DELETE' | 'Delete' | 'delete';
+SELECT : 'SELECT' | 'Select' | 'select';
+ORDER : 'ORDER' | 'Order' | 'order';
+BY : 'BY' | 'By' | 'by';
+ASC : 'ASC' | 'Asc' | 'asc';
+DESC : 'DESC' | 'Desc' | 'desc';
 
 fragment Letter : ('a'..'z'|'A'..'Z') ;
 fragment Digit :'0'..'9' ;
@@ -52,25 +52,25 @@ fragment DateDay : ('0' | '1' | '2' | '3') Digit;
 fragment DateMonth: ('0'|'1') Digit;
 fragment DateYear : ('1'|'2') Digit Digit Digit;
 
+Date : DateYear '-' DateMonth '-' DateDay;
 Id : Letter(Letter|Digit|'_')* ;
 Num : Digit(Digit)* ;
 Float : Digit(Digit)* '.' Digit(Digit)*;
 Char : '\'' (AnyAll)* '\'' ;
-Date : DateYear '-' DateMonth '-' DateDay;
 Comments: ('//' ~('\r' | '\n' )* | '/*' AnyAll* '*/') -> channel(HIDDEN);
 WhitespaceDeclaration : [\t\r\n\f ]+ -> skip ;
 
 program
-	:	database ';' (database ';')* 
+	:	database (database)* 
 	;
 
 database
-	:	createDatabase
+	:	( createDatabase
 	|	alterDatabase
 	|	dropDatabase
 	|	useDatabase
 	|	showDatabase
-	|	tableInstruction
+	|	tableInstruction ) ';'
 	;
 
 createDatabase
@@ -106,7 +106,7 @@ tableInstruction
 	|	insertInto
 	|	updateSet
 	|	deleteFrom
-	|	selectFrom ) 
+	|	selectFrom )
 	;
 		
 createTable
@@ -161,8 +161,8 @@ relExpression
 	;
 	
 unExpression
-	:	(NOT)? Id
-	|	literal
+	:	(NOT)? literal											#unExpNegatedLiteral
+	|	literal													#unExpLiteral
 	;
 		
 eqOp
@@ -214,6 +214,7 @@ literal
 	|	char_literal
 	|	float_literal
 	|	date_literal
+	|	id_literal
 	;
 	
 int_literal
@@ -232,12 +233,16 @@ date_literal
 	: 	Date
 	;
 	
+id_literal
+	:	Id
+	;
+
 insertInto	
 	:	INSERT INTO Id ('('(Id(',' Id)*)? ')')? VALUES '(' (literal (',' literal)*) ')'
 	;
 	
 updateSet
-	:	UPDATE Id SET (Id '=' Char)(',' Id '=' Char)* ( WHERE expression )?
+	:	UPDATE Id SET (Id '=' literal)(',' Id '=' literal)* ( WHERE expression )?
 	;
 
 deleteFrom

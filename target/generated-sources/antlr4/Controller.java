@@ -26,8 +26,8 @@ public class Controller {
 		GSQLLexer lexer = new GSQLLexer(input);
 		CommonTokenStream tokens = new CommonTokenStream(lexer);
 		GSQLParser parser = new GSQLParser(tokens);
-		//Future<JDialog> tree2 = parser.database().inspect(parser);
-		//parser.reset();
+	//Future<JDialog> tree2 = parser.database().inspect(parser);
+	//parser.reset();
 		ParseTree tree = parser.program();
 		long iniciale = System.currentTimeMillis();
 		DBVisitor visitor = new DBVisitor();

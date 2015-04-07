@@ -166,29 +166,6 @@ public class GUI extends JFrame {
 					texto = inputText.getText();
 				}
 				
-				ArrayList<String> pR = Xml.getPalabrasR();
-				texto = texto.replace("(", " ( ").replace(",", " , ").replace(")", " ) ");
-				String[] textoStrings = texto.split("[ |\n|\t]+");
-				String[] textoStrings2 = texto.split("[\\W\\d]+");
-				int j=0;
-				for (int i=0; i< textoStrings.length; i++){
-					if (textoStrings2.length<=j || !textoStrings[i].contains(textoStrings2[j])){
-						textoN+=textoStrings[i]+" ";
-					}else{
-						String textoOriginal = textoStrings[i];
-						String textoCambiar = textoStrings2[j];
-						if (pR.contains(textoCambiar.toUpperCase())){
-							textoN+=textoOriginal.replace(textoCambiar, textoCambiar.toUpperCase())+" ";
-						}
-						else{
-							textoN+=textoOriginal+" ";
-						}
-						j++;
-					}
-				}
-				//System.out.println(textoN);
-				
-				texto = textoN;
 				compile = new Controller();
 				compile.parse(texto);
 				
