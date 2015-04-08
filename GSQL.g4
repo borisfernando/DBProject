@@ -54,7 +54,7 @@ fragment DateYear : ('1'|'2') Digit Digit Digit;
 
 Date : DateYear '-' DateMonth '-' DateDay;
 Id : Letter(Letter|Digit|'_')* ;
-Num : Digit(Digit)* ;
+Num : ('-')? Digit(Digit)* ;
 Float : Digit(Digit)* '.' Digit(Digit)*;
 Char : '\'' (AnyAll)* '\'' ;
 Comments: ('//' ~('\r' | '\n' )* | '/*' AnyAll* '*/') -> channel(HIDDEN);

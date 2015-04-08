@@ -3,6 +3,7 @@ import java.io.File;
 
 
 
+
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpression;
@@ -26,6 +27,8 @@ import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+import com.sun.jmx.interceptor.DefaultMBeanServerInterceptor;
+
 //import sun.org.mozilla.javascript.internal.ast.NewExpression;
 
 public class DBVisitor extends GSQLBaseVisitor<Type>{
@@ -34,11 +37,10 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 	private static int contNumRow = 0;
 	private static HashMap<String, Document> hmDatabase;
 	private static HashMap<String, Index> hmPrimaryKeyDatabase; 
-	private static HashMap<String,ArrayList<String>> PrimaryKeys;
+	private static HashMap<String,ArrayList<String>> PrimaryKeys = new HashMap<String,ArrayList<String>>();;
 	
 	public DBVisitor(){
 		DBM.createMetadataD();
-		PrimaryKeys = new HashMap<String,ArrayList<String>>();
 	}
 	
 	public void update(){
@@ -244,26 +246,32 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 									fkChildElement.setAttributeNode(aTableFK);
 									
 									File f = new File("DB/"+DBActual+"/"+tableRef+".xml");
-									if (fK.getLengthColumnsId()==fK.getLengthReferences()){
+									ArrayList<String> pkColumns = DBM.getPrimaryKeyTable(DBActual,tableRef);
+									if (fK.getLengthColumnsId()==fK.getLengthReferences() && fK.getLengthColumnsId()==pkColumns.size()){
 										for (int j=0; j<fK.getLengthColumnsId(); j++){
 											if (DBM.existColumnInTable(f, fK.getReference(j))){
 												if (columnElement.getElementsByTagName(fK.getColumnId(j)).getLength()==0){
-													//NO estoy muy seguro de esto
-													NamedNodeMap nNodeM = DBM.getTypeColumn(f, fK.getReference(j));
-													Element nElement = doc.createElement(fK.getColumnId(j));
-													for (int k = 0; k<nNodeM.getLength(); k++){
-														String name = nNodeM.item(k).getNodeName();
-														String value = nNodeM.item(k).getTextContent();
-														nElement.setAttribute(name, value);
+													if (pkColumns.contains(fK.getReference(j))){
+														NamedNodeMap nNodeM = DBM.getTypeColumn(f, fK.getReference(j));
+														Element nElement = doc.createElement(fK.getColumnId(j));
+														for (int k = 0; k<nNodeM.getLength(); k++){
+															String name = nNodeM.item(k).getNodeName();
+															String value = nNodeM.item(k).getTextContent();
+															nElement.setAttribute(name, value);
+														}
+														columnElement.appendChild(nElement);
+														
+														Element fkChildNameColumn = doc.createElement("Column");
+														fkChildNameColumn.setTextContent(fK.getColumnId(j));
+														Attr aNameCol = doc.createAttribute("Reference");
+														aNameCol.setValue(fK.getReference(j));
+														fkChildNameColumn.setAttributeNode(aNameCol);
+														fkChildElement.appendChild(fkChildNameColumn);
 													}
-													columnElement.appendChild(nElement);
-													
-													Element fkChildNameColumn = doc.createElement("Column");
-													fkChildNameColumn.setTextContent(fK.getColumnId(j));
-													Attr aNameCol = doc.createAttribute("Reference");
-													aNameCol.setValue(fK.getReference(j));
-													fkChildNameColumn.setAttributeNode(aNameCol);
-													fkChildElement.appendChild(fkChildNameColumn);
+													else{
+														guardar = false;
+														System.out.println("The FK references does not match as a PK in the referenced table.");
+													}
 												}
 												else{
 													System.out.println("Column "+fK.getColumnId(j)+" already exist in table "+ctx.Id(0).getText());
@@ -274,7 +282,11 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 												guardar = false;
 												System.out.println("Column "+fK.getReference(j)+" does not exist in Table Reference "+fK.getTableReference()+".");
 											}
-										}
+										}										
+									}
+									else if (fK.getLengthColumnsId()!=pkColumns.size()){
+										System.out.println("The FK references does not match the amount of columns in the PK of the table referenced.");
+										guardar = false;
 									}
 									else{
 										guardar = false;
@@ -376,7 +388,7 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 					f.renameTo(fN);
 					f.getParentFile().mkdirs();
 					DBActual = DBM.changeNameT(DBActual,ctx.Id(0).getText(),ctx.Id(1).getText());
-					System.out.println("Corret. Table name "+ctx.Id(0).getText()+", changed to "+ctx.Id(1).getText()+".");
+					System.out.println("Correct. Table name "+ctx.Id(0).getText()+", changed to "+ctx.Id(1).getText()+".");
 				}
 				else{
 					System.out.println("Table "+ctx.Id(0).getText()+" does not exist.");
@@ -742,14 +754,43 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 							XPath xpath = xPathfactory.newXPath();
 							
 							String exp = "/Table/Database/"+TableActual+"_Row"+cond;
-							System.out.println(exp);
 							XPathExpression expr = xpath.compile(exp);
 							Object result = expr.evaluate(doc, XPathConstants.NODESET);
 					        NodeList nodes = (NodeList) result;
+					        Element modelElement = (Element) rootElement.getFirstChild();
 					        Element databaseElement = (Element) rootElement.getLastChild();
+					        
+					        ArrayList<String> pkColumns = DBM.getColumnsPKTable(modelElement);
 					        
 					        for (int i=0; i<nodes.getLength(); i++){
 					        	Element e = (Element) nodes.item(i);
+					        	
+					        	String pkVal = e.getAttributes().item(0).getTextContent();
+					        	System.out.println(pkVal);
+					        	PrimaryKeys.get(ctx.Id().getText()).remove(pkVal);
+					        	
+					        	String condR = "[";
+						        for (int j=1; j<pkColumns.size(); j++){
+						        	String s = pkColumns.get(j);
+						        	String v = e.getElementsByTagName(s).item(0).getTextContent();
+						        	condR+=s+"="+v+" and ";
+						        }
+						        String v1 = e.getElementsByTagName(pkColumns.get(pkColumns.size()-1)).item(0).getTextContent();
+						        condR+=pkColumns.get(pkColumns.size()-1)+"="+v1+"]";
+						        
+						        File folder = new File("DB/"+DBActual+"/");
+			        			for (File f: folder.listFiles()){
+			        				if (f.getName().contains(".xml") && DBM.existReferenceTable(ctx.Id().getText(), f)){
+			        					String n1 = f.getName();
+			        					String n2 = n1.substring(0, n1.indexOf(".xml"));
+			        					Document docR = hmDatabase.get(n2);
+			        					
+			        					Document docN = DBM.deleteColumnValue(n2, condR, docR);
+			        					hmDatabase.remove(n2);
+			        					hmDatabase.put(n2, docN);
+			        				}
+			        			}
+						        
 					        	PrimaryKeys.get(TableActual).remove(e.getAttributes().item(0));
 					        	databaseElement.removeChild(nodes.item(i));
 					        	cont++;
@@ -948,7 +989,6 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 						Element childElement = (Element) eActual.getChildNodes().item(j);
 						columnsArrayList.add(childElement.getTextContent());
 					}
-					System.out.println(columnsArrayList);
 					for (int j=0; j<columnsArrayList.size(); j++){
 						NodeList nodosList = rootElement.getElementsByTagName(columnsArrayList.get(j));
 						for (int k=0; k<nodosList.getLength(); k++){
@@ -1135,18 +1175,19 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 					ArrayList<Attr> attributes = new ArrayList<Attr>();
 					/* ACA VA FOREIGN KEY */
 					ArrayList<String> columnAgregadas = new ArrayList<String>();
-					HashMap<String, ArrayList<String>> todasFk = new HashMap<String, ArrayList<String>>();
+					HashMap<String, ArrayList<String>> fkColumns = new HashMap<String, ArrayList<String>>();
+					
 					for (int i=0; i<fkElement.getChildNodes().getLength(); i++){
 						Element fkActual = (Element) fkElement.getChildNodes().item(i);
 						String nombre = fkActual.getAttribute("Table");
 						ArrayList<String> arrayActual = new ArrayList<String>();
 						for (int j=0; j<fkActual.getChildNodes().getLength(); j++){
 							Element fkColumnActual = (Element) fkActual.getChildNodes().item(j);
-							arrayActual.add(fkColumnActual.getAttribute("Reference"));
+							//arrayActual.add(fkColumnActual.getAttribute("Reference"));
+							arrayActual.add(fkColumnActual.getTextContent());
 						}
-						todasFk.put(nombre, arrayActual);
+						fkColumns.put(nombre, arrayActual);
 					}
-					
 					
 					//String pkName = Xml.getPrimaryKeyTable(modelElement);
 										
@@ -1165,7 +1206,7 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 						boolean save = true;
 						String pKeyString = "";
 						//Por si te dan las columnas.
-						if (ctx.Id().size()>1){
+						if (ctx.Id().size()>1 && ctx.Id().size()-1==ctx.literal().size()){
 							for (int i=1; i<ctx.Id().size(); i++){
 								NodeList columnList = modelElement.getElementsByTagName(ctx.Id(i).getText());
 								if (columnList.getLength()==1){
@@ -1173,6 +1214,7 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 									Element newElement = doc.createElement(columnElement.getNodeName());
 									columnAgregadas.add(columnElement.getNodeName());
 									boolean esPK = pkColumns.contains(columnElement.getNodeName());
+									boolean esFK = fkColumns.values().contains(columnElement.getNodeName());
 									ValueType vT = (ValueType) visit(ctx.literal(i-1));
 									
 									String valType = vT.getName().toUpperCase();
@@ -1212,14 +1254,26 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 							
 							for (int i=0; i<columnsElement.getChildNodes().getLength(); i++){
 								Element e = (Element) columnsElement.getChildNodes().item(i);
-								if (!columnAgregadas.contains(e.getNodeName())){
+								boolean esPK = pkColumns.contains(e.getNodeName()) && columnAgregadas.contains(e.getNodeName());
+								boolean esFK = false;
+								for (ArrayList<String> t: fkColumns.values()){
+									if (t.contains(e.getNodeName()) && columnAgregadas.contains(e.getNodeName())){
+										esFK = true;
+									}
+								}
+								
+								if (!columnAgregadas.contains(e.getNodeName()) && (!esPK || !esFK)){
 									Element newElement = doc.createElement(e.getNodeName());
 									newDataElement.appendChild(newElement);
+								}
+								else if (!columnAgregadas.contains(e.getNodeName()) && esPK){
+									save = false;
+									System.out.println("Must give a key in PK and FK");
 								}
 							}
 						}
 						//Por si no te dan las columnas.
-						else{
+						else if (ctx.Id().size()<2){
 							for (int i=0; i<columnsElement.getChildNodes().getLength(); i++){
 								Element e = (Element) columnsElement.getChildNodes().item(i);
 								Element newElement = doc.createElement(e.getNodeName());
@@ -1233,8 +1287,12 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 										String value = vT.getValue();
 										if(vT.getName().equals("CHAR")){
 											if (Integer.parseInt(e.getAttribute("Length"))>value.length()){
-												if (esPK){
+												if (esPK && !value.equals("")){
 													pKeyString += value+"_";
+												}
+												else if (esPK && value.equals("")){
+													save = false;
+													System.out.println("Must give a key in PK");
 												}
 												newElement.setTextContent(value);
 											}
@@ -1244,8 +1302,12 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 											}
 										}
 										else{
-											if (esPK){
+											if (esPK && !value.equals("")){
 												pKeyString += value+"_";
+											}
+											else if (esPK && value.equals("")){
+												save = false;
+												System.out.println("Must give a key in PK");
 											}
 											newElement.setTextContent(value);
 										}
@@ -1257,13 +1319,41 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 									newDataElement.appendChild(newElement);
 								}
 								else{
-									newDataElement.appendChild(newElement);
+									if (pkColumns.contains(newElement.getNodeName())){
+										System.out.println("Must give a key in PK");
+										save = false;
+									}
+									else{
+										newDataElement.appendChild(newElement);
+									}
+									
 								}
 							}
 						}
+						else{
+							System.out.println("Error. The length of values and columns is not the same.");
+							fkColumns = new HashMap<String, ArrayList<String>>();
+							pKeyString = ".";
+						}
+						
+						for (String fkColum: fkColumns.keySet()){
+							String text = "";
+							for (String col: fkColumns.get(fkColum)){
+								Element e = (Element) newDataElement.getElementsByTagName(col).item(0);
+								text+=e.getTextContent()+"_";
+							}
+							text = text.substring(0, text.length()-1);
+							if (!PrimaryKeys.containsKey(fkColum) || !PrimaryKeys.get(fkColum).contains(text)){
+								if (text.equals(""))
+									text = "NULL";
+								System.out.println("PK "+text+" does not exist in table "+fkColum);
+								save = false;
+							}
+						}
+						
 						if (save){
 							String t = pKeyString.substring(0, pKeyString.length()-1);
-							if (!PrimaryKeys.get(ctx.Id(0).getText()).contains(t) && t!=""){
+							if (!PrimaryKeys.get(ctx.Id(0).getText()).contains(t) && !t.equals("")){
 								PrimaryKeys.get(ctx.Id(0).getText()).add(t);
 								String nombrePK = pkElement.getAttribute("Name");
 								Attr a = doc.createAttribute(nombrePK);
@@ -1276,13 +1366,8 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 								DBM.modifyDatabase(DBActual, "Records");
 					        }
 					        else{
-					        	String ret = "";
-					        	if (attributes.size()>0){
-						        	for (int i=0; i<attributes.size()-1; i++){
-										ret+=""+attributes.get(i).getName()+"=\'"+attributes.get(i).getValue()+"\', ";
-									}
-						        	ret+=""+attributes.get(attributes.size()-1).getName()+"=\'"+attributes.get(attributes.size()-1).getValue()+"\'";
-						        	System.out.println("Already exist a row with "+ret+" as Primary Key.");
+					        	if (!t.equals("")){
+						        	System.out.println("Already exist a row with "+t+" as Primary Key.");
 					        	}else{
 					        		System.out.println("False. No primary key given");
 					        	}
@@ -1423,10 +1508,12 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 					doc.getDocumentElement().normalize();
 					
 					Element rootElement = doc.getDocumentElement();
-					Element columnElement = (Element) rootElement.getFirstChild().getFirstChild();
+					Element modelElement = (Element) rootElement.getFirstChild();
+					Element columnElement = (Element) modelElement.getFirstChild();
 					Element databaseElement = (Element) rootElement.getLastChild();
 					
 					int cont = 0;
+					boolean save = true;
 					if (ctx.WHERE() != null){
 						Expression eType = (Expression) visit(ctx.expression());
 						if (!eType.eError()){
@@ -1436,11 +1523,12 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 							XPath xpath = xPathfactory.newXPath();
 							
 							String exp = "/Table/Database/"+TableActual+"_Row"+cond;
-							System.out.println(exp);
 							
 							XPathExpression expr = xpath.compile(exp);
 							Object result = expr.evaluate(doc, XPathConstants.NODESET);
 					        NodeList nodes = (NodeList) result;
+					        
+					        ArrayList<String> pkColumns = DBM.getColumnsPKTable(modelElement);
 					        
 					        for (int i=0; i<nodes.getLength(); i++){
 					        	for (int j=1; j<ctx.Id().size(); j++){
@@ -1454,23 +1542,96 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 										if(vT.getName().equals("CHAR")){
 											if (Integer.parseInt(columnValueElement.getAttribute("Length"))>value.length()){
 												Element nElement = (Element) nodes.item(i);
-												Element valueElement = (Element) nElement.getElementsByTagName(ctx.Id(j).getText()).item(0);
-												valueElement.setTextContent(value);
-												cont++;
+												if (pkColumns.contains(columnString)){
+													Element eCambio = (Element) nodes.item(i);
+													String valueOld = eCambio.getElementsByTagName(columnString).item(0).getTextContent();
+								        			File folder = new File("DB/"+DBActual+"/");
+								        			for (File f: folder.listFiles()){
+								        				if (f.getName().contains(".xml") && DBM.existReferenceColumn(ctx.Id(0).getText(), columnString, f)){
+								        					String n1 = f.getName();
+								        					String n2 = n1.substring(0, n1.indexOf(".xml"));
+								        					Document docR = hmDatabase.get(n2);
+								        					String columnFK = DBM.getColumnFKTable(columnString, f);
+								        					DBM.changeColumnValue(columnFK,valueOld, value, docR);
+								        				}
+								        			}
+								        			String pkNew = "";
+								        			String pkOld = eCambio.getAttributes().item(0).getTextContent();
+								        			for (String pk: pkColumns){
+								        				if (!pk.equals(columnString)){
+								        					pkNew+=eCambio.getElementsByTagName(pk).item(0).getTextContent()+"_";
+								        				}
+								        				else{
+								        					pkNew+=value+"_";								        					
+								        				}
+								        			}
+								        			pkNew = pkNew.substring(0, pkNew.length()-1);
+								        			nElement.getAttributes().item(0).setTextContent(pkNew);
+								        			if (!PrimaryKeys.get(ctx.Id(0).getText()).contains(pkNew)){
+								        				PrimaryKeys.get(ctx.Id(0).getText()).remove(pkOld);
+									        			PrimaryKeys.get(ctx.Id(0).getText()).add(pkNew);
+								        			}
+								        			else{
+								        				save = false;
+								        				System.out.println("Already a row with PK "+pkNew+".");
+								        			}
+								        		}
+												if (save){
+													Element valueElement = (Element) nElement.getElementsByTagName(ctx.Id(j).getText()).item(0);
+													valueElement.setTextContent(value);
+													cont++;
+												}
 											}
 											else{
-												System.out.println("Error in Insert. Char \""+value+"\" greater than expected.");
+												System.out.println("Error in Update. Char \""+value+"\" greater than expected.");
 											}
 										}
 										else{
 											Element nElement = (Element) nodes.item(i);
-											Element valueElement = (Element) nElement.getElementsByTagName(ctx.Id(j).getText()).item(0);
-											valueElement.setTextContent(value);
-											cont++;
+											if (pkColumns.contains(columnString)){
+												
+												Element eCambio = (Element) nodes.item(i);
+												String valueOld = eCambio.getElementsByTagName(columnString).item(0).getTextContent();
+							        			File folder = new File("DB/"+DBActual+"/");
+							        			for (File f: folder.listFiles()){
+							        				if (f.getName().contains(".xml") && DBM.existReferenceColumn(ctx.Id(0).getText(), columnString, f)){
+							        					String n1 = f.getName();
+							        					String n2 = n1.substring(0, n1.indexOf(".xml"));
+							        					Document docR = hmDatabase.get(n2);
+							        					String columnFK = DBM.getColumnFKTable(columnString, f);
+							        					DBM.changeColumnValue(columnFK, valueOld, value, docR);
+							        				}
+							        			}
+							        			String pkNew = "";
+							        			String pkOld = eCambio.getAttributes().item(0).getTextContent();
+							        			for (String pk: pkColumns){
+							        				if (!pk.equals(columnString)){
+							        					pkNew+=eCambio.getElementsByTagName(pk).item(0).getTextContent()+"_";
+							        				}
+							        				else{
+							        					pkNew+=value+"_";								        					
+							        				}
+							        			}
+							        			pkNew = pkNew.substring(0, pkNew.length()-1);
+							        			nElement.getAttributes().item(0).setTextContent(pkNew);
+							        			if (!PrimaryKeys.get(ctx.Id(0).getText()).contains(pkNew)){
+							        				PrimaryKeys.get(ctx.Id(0).getText()).remove(pkOld);
+								        			PrimaryKeys.get(ctx.Id(0).getText()).add(pkNew);
+							        			}
+							        			else{
+							        				save = false;
+							        				System.out.println("Already a row with PK "+pkNew);
+							        			}
+							        		}
+											if (save){
+												Element valueElement = (Element) nElement.getElementsByTagName(ctx.Id(j).getText()).item(0);
+												valueElement.setTextContent(value);
+												cont++;
+											}
 										}
 									}
 									else{
-										System.out.println("Error in Insert. Found "+vT.getName()+" expected "+columnElement.getAttribute("Type"));
+										System.out.println("Error in Update. Found "+vT.getName()+" expected "+columnElement.getAttribute("Type"));
 									}
 					        	}
 					        }
@@ -1502,7 +1663,7 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 										}
 									}
 									else{
-										System.out.println("Error in Insert. Char \""+value+"\" greater than expected.");
+										System.out.println("Error in Update. Char \""+value+"\" greater than expected.");
 									}
 								}
 								else{
@@ -1514,7 +1675,7 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 								}
 							}
 							else{
-								System.out.println("Error in Insert. Found "+vT.getName()+" expected "+columnElement.getAttribute("Type"));
+								System.out.println("Error in Update. Found "+vT.getName()+" expected "+columnElement.getAttribute("Type"));
 							}
 							
 						}

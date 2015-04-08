@@ -12,6 +12,10 @@ import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpression;
+import javax.xml.xpath.XPathFactory;
 
 import org.w3c.dom.Attr;
 import org.w3c.dom.Document;
@@ -28,6 +32,48 @@ public class DBM {
 	 * Return boolean delete
 	 * Use: returns true if the directory was deleted, false otherwise
 	 */
+	
+	public static Document changeColumnValue(String column, String oldValue, String value, Document doc){
+		try{
+			doc.getDocumentElement().normalize();
+			
+			Element rootElement = doc.getDocumentElement();
+			Element databaseElement = (Element) rootElement.getLastChild();
+			
+			NodeList listRows = databaseElement.getElementsByTagName(column);
+			for (int i=0; i<listRows.getLength(); i++){
+				Element eActual = (Element) listRows.item(i);
+				if (eActual.getTextContent().equals(oldValue)){
+					eActual.setTextContent(value);
+				}
+			}
+		}catch(Exception e){e.printStackTrace();}
+		return doc;
+	}
+
+	public static Document deleteColumnValue(String TableActual, String condition, Document doc){
+		try{
+			String exp = "/Table/Database/"+TableActual+"_Row"+condition;
+			doc.getDocumentElement().normalize();
+			
+			Element rootElement = doc.getDocumentElement();
+			Element databaseElement = (Element) rootElement.getLastChild();
+			
+			XPathFactory xPathfactory = XPathFactory.newInstance();
+			XPath xpath = xPathfactory.newXPath();
+			XPathExpression expr = xpath.compile(exp);
+			Object result = expr.evaluate(doc, XPathConstants.NODESET);
+			NodeList nodes = (NodeList) result;
+			
+			int cont = nodes.getLength();
+			for (int i=0; i<nodes.getLength(); i++){
+				Node n = nodes.item(i);
+				databaseElement.removeChild(n);
+			}
+			System.out.println("DELETE("+cont+") in table "+TableActual);
+		}catch(Exception e){}
+		return doc;
+	}
 	
 	public static boolean deleteDirectory(File directory) {
 	    if(directory.exists()){
@@ -95,7 +141,7 @@ public class DBM {
 					}
 				}
 			}
-		}catch(Exception e){}
+		}catch(Exception e){e.printStackTrace();}
 		return false;
 	}
 	
@@ -199,6 +245,28 @@ public class DBM {
 			}
 		}catch(Exception e){}
 		return nombres;
+	}
+	
+	public static String getColumnFKTable(String column, File f){
+		try{
+			DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+			DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+			Document doc = docBuilder.parse(f);
+			doc.getDocumentElement().normalize();
+			
+			Element rootElement = doc.getDocumentElement();
+			Element modelElement = (Element) rootElement.getFirstChild();
+			Element constraintElement = (Element) modelElement.getLastChild();
+			Element fkElement = (Element) constraintElement.getLastChild();
+			NodeList fkColumns = fkElement.getElementsByTagName("Column");
+			for (int i=0; i<fkColumns.getLength(); i++){
+				Element eActual = (Element) fkColumns.item(i);
+				if (eActual.getAttribute("Reference").equals(column)){
+					return eActual.getTextContent();
+				}
+			}
+		}catch(Exception e){}
+		return "";
 	}
 	
 	/*
@@ -906,6 +974,25 @@ public class DBM {
 		return bExist;
 	}
 	
+	public static ArrayList<String> getPrimaryKeyTable(String DBActual, String Table){
+		ArrayList<String> pkColumns = new ArrayList<String>();
+		try{
+			File fT = new File("DB/"+DBActual+"/"+Table+".xml");
+			DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+			DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+			Document doc = docBuilder.parse(fT);
+			doc.getDocumentElement().normalize();
+			
+			Element constraintElement = (Element) doc.getDocumentElement().getFirstChild().getLastChild();
+			Element pkElement = (Element) constraintElement.getFirstChild();
+			for (int i=0; i<pkElement.getChildNodes().getLength(); i++){
+				pkColumns.add(pkElement.getChildNodes().item(i).getTextContent());
+			}
+			
+		}catch(Exception e){e.printStackTrace();}
+		return pkColumns;
+	}
+	
 	/*
 	 * Method: existTable
 	 * Parameter: String table
@@ -923,7 +1010,7 @@ public class DBM {
 			
 			for (int i=0; i<doc.getElementsByTagName("Name").getLength(); i++){
 				Node nActual = doc.getElementsByTagName("Name").item(i);
-				if (nActual.getTextContent().toLowerCase().equals(table.toLowerCase())){
+				if (nActual.getTextContent().equals(table)){
 					bExist = true;
 				}
 			}
