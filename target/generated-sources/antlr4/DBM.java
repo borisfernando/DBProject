@@ -33,6 +33,24 @@ public class DBM {
 	 * Use: returns true if the directory was deleted, false otherwise
 	 */
 
+	public static ArrayList<String> getColumnsByTable(String table,String DBActual){
+		ArrayList<String> retorno = new ArrayList<String>();
+		try{
+			DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+			DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+			Document doc = docBuilder.parse(new File("DB/"+DBActual+"/"+table+".xml"));
+			doc.getDocumentElement().normalize();
+			
+			Element rootElement = doc.getDocumentElement();
+			Element columnElement = (Element) rootElement.getFirstChild();
+			Element modelElement = (Element) columnElement.getFirstChild();
+			
+			for (int i=0; i<modelElement.getChildNodes().getLength(); i++){
+				retorno.add(modelElement.getChildNodes().item(i).getNodeName());
+			}
+		}catch(Exception e){e.printStackTrace();}
+		return retorno;
+	}
 	
 	public static Document changeColumnValue(String column, String oldValue, String value, Document doc){
 		try{

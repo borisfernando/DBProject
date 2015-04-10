@@ -31,14 +31,19 @@ import com.sun.jmx.interceptor.DefaultMBeanServerInterceptor;
 //import sun.org.mozilla.javascript.internal.ast.NewExpression;
 
 public class DBVisitor extends GSQLBaseVisitor<Type>{
-	private static String DBActual = "";
-	private static String TableActual = "";
-	private static int contNumRow = 0;
-	private static HashMap<String, Document> hmDatabase;
-	private static HashMap<String, Index> hmPrimaryKeyDatabase; 
-	private static HashMap<String,ArrayList<String>> PrimaryKeys = new HashMap<String,ArrayList<String>>();;
+	private String DBActual = "";
+	private String TableActual = "";
+	private int contNumRow = 0;
+	private HashMap<String, Document> hmDatabase;
+	private HashMap<String, Index> hmPrimaryKeyDatabase; 
+	private ArrayList<String> columnsFromTable;
+	private HashMap<String,ArrayList<String>> PrimaryKeys = new HashMap<String,ArrayList<String>>();;
 	
 	public DBVisitor(){
+		PrimaryKeys = new HashMap<String, ArrayList<String>>();
+		hmDatabase = new HashMap<String, Document>();
+		hmPrimaryKeyDatabase = new HashMap<String, Index>();
+		columnsFromTable = new ArrayList<String>();
 		DBM.createMetadataD();
 	}
 	
@@ -1432,10 +1437,22 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 
 	@Override
 	public Type visitSimpId_literal(GSQLParser.SimpId_literalContext ctx) {
-		ValueType t = new IdValueType("ID",ctx.Id().getText(),"",false);
-		boolean error = !(DBM.existColumnInTable(new File("DB/"+DBActual+"/"+TableActual+".xml"), ctx.Id().getText()));
-		if (error){
-			System.out.println("Column "+ctx.Id().getText()+" does not exist in table "+TableActual);
+		String id = ctx.Id().getText();
+		ValueType t = new IdValueType("ID",id,"",false);
+		boolean error = false;
+		if (!TableActual.equals("")){
+			error = !(DBM.existColumnInTable(new File("DB/"+DBActual+"/"+TableActual+".xml"), id));
+			if (error){
+				System.out.println("Column "+id+" does not exist in table "+TableActual);
+			}
+		}
+		else if(columnsFromTable.indexOf(id) != columnsFromTable.lastIndexOf(id)){
+			System.out.println("There is no reference for duplicated "+id);
+			error = true;
+		}
+		else if(!columnsFromTable.contains(id)){
+			System.out.println("Column name "+id+" does not exist");
+			error = true;
 		}
 		return new UnaryExpression("Unary", t, error);
 	}
@@ -1499,7 +1516,8 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 					        	for (int j=1; j<ctx.Id().size(); j++){
 					        		String columnString = ctx.Id(j).getText();
 					        		Element columnValueElement = (Element) columnElement.getElementsByTagName(columnString).item(0);
-					        		ValueType vT = (ValueType) visit(ctx.literal(j-1));
+					        		UnaryExpression uT = (UnaryExpression) visit(ctx.literal(j-1)); 
+					        		ValueType vT = uT.getVal();
 					        		String valType = vT.getName().toUpperCase();
 					        		String valColumn = columnValueElement.getAttribute("Type").toUpperCase();
 					        		if (valType.equals(valColumn)){
@@ -1686,54 +1704,46 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 		try{
 			CartesianTable cT = (CartesianTable) visit(ctx.from());
 			Element rows = cT.getGeneral();
-			//MultipleExpression where = (MultipleExpression) visit(ctx.where());
-			
-			String tipo="";
-			//HashMap<String,String> referencias = where.getUnaries(where, new HashMap<String,String>());
-			
-			/*String exp = "";
-			
-			for (String r: referencias.keySet()){
-				exp+="//"+r+"[@Reference="+referencias.get(r)+"] and";
-			}*/
-			
-			//String exp = "//row[//personid[@Reference=\'persons\']/text()[0] = //animalid[@Reference=\'animal\']/text()]";
-			String exp = "//personid[@Reference=\'persons\' and text()=//animalid[@Reference = \'animal\']/string()]";
-			
-			File fT = new File("DB/PRUEBASSSSS.md");
-			TransformerFactory transformerFactory = TransformerFactory.newInstance();
-			Transformer transformer = transformerFactory.newTransformer();
-			DOMSource source = new DOMSource(rows);
-			StreamResult results = new StreamResult(fT);
-			transformer.transform(source, results);
-			fT.getParentFile().mkdirs(); 
-			fT.createNewFile();
-		
-			
-			
-			//System.out.println(referencias);
-			
-			//String cond = where.toString();
-			
-			//System.out.println(cond);
-			
-			System.out.println(exp);
-			
-			XPathFactory xPathfactory = XPathFactory.newInstance();
-			XPath xpath = xPathfactory.newXPath();
-			
-			//String exp = "/Table/Database/"+TableActual+"_Row"+cond;
-			XPathExpression expr = xpath.compile(exp);
-			Object result = expr.evaluate(rows, XPathConstants.NODESET);
-	        NodeList nodes = (NodeList) result;
-	        
-	        for (int i=0; i<nodes.getLength(); i++){
-	        	Element e = (Element) nodes.item(i).getParentNode();
-	        	System.out.println(e);
-	        }
-	        
-	        System.out.println(nodes.getLength());
-	        
+			MultipleExpression where = (MultipleExpression) visit(ctx.where());
+			if (!where.eError()){
+				String tipo="";
+				String t = "";
+				HashMap<String,String> referencias = where.getUnaries(t,where, new HashMap<String,String>());
+				
+				String exp = "/Database/row[";
+				for (String r: referencias.keySet()){
+					exp+=r+"]";
+				}
+				
+				//use database db; select * from persons, fechas where persons.personid=10;
+				//exp = "/Database/row[./personid[@Reference = \'persons\']/text() = ./fechaid[@Reference=\'fechas\']/text()]";
+				
+				File fT = new File("DB/PRUEBASSSSS.md");
+				TransformerFactory transformerFactory = TransformerFactory.newInstance();
+				Transformer transformer = transformerFactory.newTransformer();
+				DOMSource source = new DOMSource(rows);
+				StreamResult results = new StreamResult(fT);
+				transformer.transform(source, results);
+				fT.getParentFile().mkdirs(); 
+				fT.createNewFile();
+				
+				XPathFactory xPathfactory = XPathFactory.newInstance();
+				XPath xpath = xPathfactory.newXPath();
+				XPathExpression expr = xpath.compile(exp);
+				Object result = expr.evaluate(rows, XPathConstants.NODESET);
+		        NodeList nodes = (NodeList) result;
+		        
+		        for (int i=0; i<nodes.getLength(); i++){
+		        	Element e = (Element) nodes.item(i).getParentNode();
+		        	//System.out.println(e);
+		        }
+		        
+		        System.out.println(nodes.getLength());
+				
+			}
+			else{
+				System.out.println("Error in expression.");
+			}
 		}catch(Exception e){e.printStackTrace();}
         
 		return null;//super.visitSelect(ctx);
@@ -1752,8 +1762,11 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 			ArrayList<String> ids = new ArrayList<String>();
 			for (int i=0; i<ctx.Id().size(); i++){
 				ids.add(ctx.Id(i).getText());
+				ArrayList<String> col = DBM.getColumnsByTable(ctx.Id(i).getText(), DBActual);
+				for (String c: col){
+					columnsFromTable.add(c);
+				}
 			}
-			
 			
 			CartesianTable cT = new CartesianTable(ids, (HashMap<String,Document>) hmDatabase.clone(), doc);
 			
