@@ -32,6 +32,7 @@ public class DBM {
 	 * Return boolean delete
 	 * Use: returns true if the directory was deleted, false otherwise
 	 */
+
 	
 	public static Document changeColumnValue(String column, String oldValue, String value, Document doc){
 		try{
@@ -178,7 +179,7 @@ public class DBM {
 			if (columnElement.getElementsByTagName(column).getLength()==0){
 				return false;
 			}
-		}catch(Exception e){}
+		}catch(Exception e){e.printStackTrace();}
 		return retorno;
 	}
 	
@@ -294,7 +295,7 @@ public class DBM {
 				fT.getParentFile().mkdirs(); 
 				fT.createNewFile();
 			}
-		}catch(Exception e){}
+		}catch(Exception e){e.printStackTrace();}
 	}
 	
 	public static void updateDeletedData(){
@@ -429,7 +430,7 @@ public class DBM {
 					}
 					hmDatabase.put(fDB.getName(), hmTables);
 				}
-				else{
+				else if (fDB.getName().contains(".md")){
 					fMDD = fDB;
 				}
 			}

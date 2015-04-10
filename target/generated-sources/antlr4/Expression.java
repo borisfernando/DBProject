@@ -1,30 +1,19 @@
 
 public class Expression extends DataType{
-	private String condition;
-	private boolean negated;
-	private boolean error;
 	
-	public Expression(String name, String condition, boolean negated, boolean error){
+	boolean eError;
+	
+	public Expression(String name, boolean eError) {
 		super(name);
-		this.condition = condition;
-		this.negated = negated;
-		this.error = error;
+		this.eError = eError;
 	}
-	
+
 	@Override
 	public String getName() {
 		return super.getName();
-	}
-	
-	public String getCondition(){
-		return condition;
-	}
+	} 
 	
 	public boolean eError(){
-		return error;
-	}
-	
-	public boolean isNegated(){
-		return negated;
+		return eError;
 	}
 }

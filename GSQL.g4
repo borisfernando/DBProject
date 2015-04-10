@@ -106,7 +106,7 @@ tableInstruction
 	|	insertInto
 	|	updateSet
 	|	deleteFrom
-	|	selectFrom )
+	|	select )
 	;
 		
 createTable
@@ -161,8 +161,7 @@ relExpression
 	;
 	
 unExpression
-	:	(NOT)? literal											#unExpNegatedLiteral
-	|	literal													#unExpLiteral
+	:	(NOT)? literal											
 	;
 		
 eqOp
@@ -234,7 +233,8 @@ date_literal
 	;
 	
 id_literal
-	:	Id
+	:	Id									#simpId_literal
+	|	Id '.' Id							#doubleId_literal
 	;
 
 insertInto	
@@ -242,14 +242,25 @@ insertInto
 	;
 	
 updateSet
-	:	UPDATE Id SET (Id '=' literal)(',' Id '=' literal)* ( WHERE expression )?
+	:	UPDATE Id SET (Id '=' literal)(',' Id '=' literal)* (where)?
 	;
 
 deleteFrom
-	:	DELETE FROM Id (WHERE expression)?
+	:	DELETE FROM Id (where)?
 	;
 	
-selectFrom
-	:	SELECT ('*'|Id (',' Id)*) FROM Id (',' Id)* ( WHERE expression (ORDER BY Id (ASC | DESC)? (',' Id (ASC | DESC)?)*)? )?  
+select
+	:	SELECT ('*'|Id (',' Id)*) from ( where (orderBy)? )?  
+	;
+	
+from
+	:	FROM Id (',' Id)*
 	;
 
+where	
+	:	WHERE expression
+	;
+	
+orderBy	
+	:	ORDER BY Id (ASC | DESC)? (',' Id (ASC | DESC)?)*
+	;

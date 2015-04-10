@@ -17,7 +17,10 @@ public class Controller {
 		GSQLLexer lexer = new GSQLLexer(input);
 		CommonTokenStream tokens = new CommonTokenStream(lexer);
 		GSQLParser parser = new GSQLParser(tokens);
+		//parser.program().inspect(parser);
+		//parser.reset();
 		ParseTree tree = parser.program();
+		
 		long iniciale = System.currentTimeMillis();
 		visitor.visit(tree);
 		long finale = System.currentTimeMillis();

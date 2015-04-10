@@ -1,9 +1,5 @@
 import java.io.File;
 
-
-
-
-
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpression;
@@ -11,6 +7,7 @@ import javax.xml.xpath.XPathFactory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.concurrent.TimeUnit;
 
 import javax.swing.JOptionPane;
 import javax.xml.parsers.DocumentBuilder;
@@ -26,6 +23,8 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+
+
 
 import com.sun.jmx.interceptor.DefaultMBeanServerInterceptor;
 
@@ -644,46 +643,16 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 	
 	@Override
 	public Type visitEqOpExpression(GSQLParser.EqOpExpressionContext ctx) {
-		String newConditionString = "";
-		Expression eR = (Expression) visit(ctx.eqExpression());
-		String relation = ctx.eqOp().getText();
-		if (relation.equals("<>")){
-			relation = "!=";
+		Expression e1 = (Expression) visit(ctx.eqExpression());
+		String opString = ctx.eqOp().getText();
+		if (opString.equals("<>")){
+			opString = "!=";
 		}
-		Expression eU = (Expression) visit(ctx.relExpression());
-		boolean error = false;
+		Expression e2 = (Expression) visit(ctx.relExpression());
 		
-		if (eR.getName().equals("Unary")){
-			String eRValue = eR.getCondition();
-			String eUValue = eU.getCondition();
-			
-			Document doc = hmDatabase.get(TableActual);
-			doc.getDocumentElement().normalize();
-			
-			Element modelElement = (Element) doc.getDocumentElement().getFirstChild().getFirstChild();
-			if (modelElement.getElementsByTagName(eRValue).getLength()!=0){
-				newConditionString+=eRValue+relation+eUValue+"";
-			}else if (modelElement.getElementsByTagName(eUValue).getLength()!=0){
-				newConditionString+=eUValue+relation+eRValue+"";
-			}
-			else{
-				error = true;
-				System.out.println("Error. Id not declarated.");
-			}
-		}
-		else{
-			//Falta ver este
-			// TODO Auto-generated method stub
-		}
-		// por el momento false
-		return new Expression("Eq",newConditionString,false,(eR.eError() || eU.eError() || error));
+		return new MultipleExpression("MExpression",e1,opString,e2,(e1.eError() || e2.eError()));
 	}
-
-	@Override
-	public Type visitSelectFrom(GSQLParser.SelectFromContext ctx) {
-		// TODO Auto-generated method stub
-		return super.visitSelectFrom(ctx);
-	}	
+	
 
 	@Override
 	public Type visitConstraint(GSQLParser.ConstraintContext ctx) {
@@ -745,15 +714,15 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 					Element rootElement = doc.getDocumentElement();
 					
 					int cont = 0;
-					if (ctx.WHERE() != null){
-						Expression eType = (Expression) visit(ctx.expression());
+					if (ctx.where() != null){
+						Expression eType = (Expression) visit(ctx.where());
 						if (!eType.eError()){
-							String cond = "["+eType.getCondition()+"]";
-							
+							String cond = "["+eType.toString()+"]";
 							XPathFactory xPathfactory = XPathFactory.newInstance();
 							XPath xpath = xPathfactory.newXPath();
 							
 							String exp = "/Table/Database/"+TableActual+"_Row"+cond;
+									
 							XPathExpression expr = xpath.compile(exp);
 							Object result = expr.evaluate(doc, XPathConstants.NODESET);
 					        NodeList nodes = (NodeList) result;
@@ -797,7 +766,7 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 					        }
 					        System.out.println("DELETE ("+cont+").");
 						}else{
-							System.out.println("Error in expression.");
+							System.out.println("Error in expression. ");
 						}
 					}
 					else{
@@ -820,7 +789,7 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 			}
 		}catch(Exception e){e.printStackTrace();}
 		
-		return super.visitDeleteFrom(ctx);
+		return null;//super.visitDeleteFrom(ctx);
 	}
 
 	@Override
@@ -851,29 +820,17 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 
 	@Override
 	public Type visitDate_literal(GSQLParser.Date_literalContext ctx) {
-		return new ValueType("DATE",ctx.Date().getText());
+		ValueType t = new ValueType("DATE",ctx.Date().getText());
+		return new UnaryExpression("Unary", t, false);
 	}
-
+	
 	@Override
-	public Type visitUnExpLiteral(GSQLParser.UnExpLiteralContext ctx) {
-		ValueType vT = (ValueType) visit(ctx.literal());
-		if (vT.getName().equals("CHAR")){
-			return new Expression("Unary","\'"+vT.getValue()+"\'",false,false);
+	public Type visitUnExpression(GSQLParser.UnExpressionContext ctx) {
+		if (ctx.NOT()!=null){
+			return null;
 		}
 		else{
-			return new Expression("Unary",vT.getValue(),false,false);
-		}
-		
-	}
-
-	@Override
-	public Type visitUnExpNegatedLiteral(GSQLParser.UnExpNegatedLiteralContext ctx) {
-		ValueType vT = (ValueType) visit(ctx.literal());
-		if (vT.getName().equals("CHAR")){
-			return new Expression("Unary","\'"+vT.getValue()+"\'",true,false);
-		}
-		else{
-			return new Expression("Unary",vT.getValue(),true,false);
+			return visit(ctx.literal());
 		}
 	}
 
@@ -937,17 +894,11 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 
 	@Override
 	public Type visitCondOrExpression(GSQLParser.CondOrExpressionContext ctx) {
-		String newConditionString = "";
-		Expression eR = (Expression) visit(ctx.expression());
-		Expression eU = (Expression) visit(ctx.andExpression());
+		Expression e1 = (Expression) visit(ctx.expression());
+		String opExpString = ctx.orOp().getText();
+		Expression e2 = (Expression) visit(ctx.andExpression());
 		
-		String eRValue = eR.getCondition();
-		String eUValue = eU.getCondition();
-		
-		newConditionString += eRValue+" or "+eUValue;
-		
-		//por el momento false, pero falta ver si hay alguno false
-		return new Expression("Or",newConditionString,false, (eR.eError() || eU.eError()));
+		return new MultipleExpression("MExpression",e1,opExpString,e2,(e1.eError() || e2.eError()));
 	}
 	
 	@Override
@@ -1140,17 +1091,11 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 
 	@Override
 	public Type visitCondExpression(GSQLParser.CondExpressionContext ctx) {
-		String newConditionString = "";
-		Expression eR = (Expression) visit(ctx.andExpression());
-		Expression eU = (Expression) visit(ctx.eqExpression());
+		Expression e1 = (Expression) visit(ctx.andExpression());
+		String opString = ctx.andOp().getText();
+		Expression e2 = (Expression) visit(ctx.eqExpression());
 		
-		String eRValue = eR.getCondition();
-		String eUValue = eU.getCondition();
-		
-		newConditionString += eRValue+" and "+eUValue;
-		
-		//por el momento false, pero falta ver si hay alguno false
-		return new Expression("And",newConditionString,false, (eR.eError() || eU.eError()));
+		return new MultipleExpression("MExpression",e1,opString,e2,(e1.eError() || e2.eError()));
 	}
 
 	@Override
@@ -1279,7 +1224,10 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 								Element newElement = doc.createElement(e.getNodeName());
 								boolean esPK = pkColumns.contains(e.getNodeName());
 								if (ctx.literal(i)!=null){
-									ValueType vT = (ValueType) visit(ctx.literal(i));
+									Type tipoL = visit(ctx.literal(i));
+									UnaryExpression tipoLE = (UnaryExpression) tipoL;
+									
+									ValueType vT = tipoLE.getVal();
 									String valType = vT.getName().toUpperCase();
 					        		String valColumn = e.getAttribute("Type").toUpperCase();
 									
@@ -1405,7 +1353,8 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 
 	@Override
 	public Type visitInt_literal(GSQLParser.Int_literalContext ctx) {
-		return new ValueType("INT",ctx.Num().getText());
+		ValueType t = new ValueType("INT",ctx.Num().getText());
+		return new UnaryExpression("Unary", t, false);
 	}
 
 	@Override
@@ -1416,12 +1365,12 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 	@Override
 	public Type visitRelOpExpression(GSQLParser.RelOpExpressionContext ctx) {
 		String newConditionString = "";
-		Expression eR = (Expression) visit(ctx.relExpression());
-		String relation = ctx.relOp().getText();
-		Expression eU = (Expression) visit(ctx.unExpression());
+		Expression e1 = (Expression) visit(ctx.relExpression());
+		String opString = ctx.relOp().getText();
+		Expression e2 = (Expression) visit(ctx.unExpression());
 		boolean error = false;
 		
-		if (eR.getName().equals("Unary")){
+		/*if (eR.getName().equals("Unary")){
 			String eRValue = eR.getCondition();
 			String eUValue = eU.getCondition();
 			
@@ -1443,8 +1392,8 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 			//Falta ver este
 			// TODO Auto-generated method stub
 		}
-		// por el momento false
-		return new Expression("Rel",newConditionString,false, (eU.eError() || eU.eError() || error));
+		// por el momento false*/
+		return new MultipleExpression("MExpression",e1,opString,e2,(e1.eError() || e2.eError()));
 	}
 
 	@Override
@@ -1462,17 +1411,33 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 	@Override
 	public Type visitChar_literal(GSQLParser.Char_literalContext ctx) {	
 		String t = ctx.Char().getText().substring(1, ctx.Char().getText().length()-1);
-		return new ValueType("CHAR", t);
+		ValueType val = new ValueType("CHAR", t);
+		return new UnaryExpression("Unary", val, false);
 	}
 
 	@Override
 	public Type visitFloat_literal(GSQLParser.Float_literalContext ctx) {
-		return new ValueType("FLOAT",ctx.Float().getText());
+		ValueType t = new ValueType("FLOAT",ctx.Float().getText());
+		return new UnaryExpression("Unary", t, false);
 	}
-	
+
 	@Override
-	public Type visitId_literal(GSQLParser.Id_literalContext ctx) {
-		return new ValueType("ID",ctx.Id().getText());
+	public Type visitDoubleId_literal(GSQLParser.DoubleId_literalContext ctx) {
+		ValueType t = new IdValueType("ID",ctx.Id(1).getText(),ctx.Id(0).getText(),true);
+		boolean error = !(DBM.existColumnInTable(new File("DB/"+DBActual+"/"+ctx.Id(0).getText()+".xml"), ctx.Id(1).getText()));
+		if (error)
+			System.out.println("Column "+ctx.Id(1).getText()+" does not exist in table "+ctx.Id(0).getText());
+		return new UnaryExpression("Unary", t, error);
+	}
+
+	@Override
+	public Type visitSimpId_literal(GSQLParser.SimpId_literalContext ctx) {
+		ValueType t = new IdValueType("ID",ctx.Id().getText(),"",false);
+		boolean error = !(DBM.existColumnInTable(new File("DB/"+DBActual+"/"+TableActual+".xml"), ctx.Id().getText()));
+		if (error){
+			System.out.println("Column "+ctx.Id().getText()+" does not exist in table "+TableActual);
+		}
+		return new UnaryExpression("Unary", t, error);
 	}
 
 	@Override
@@ -1514,10 +1479,10 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 					
 					int cont = 0;
 					boolean save = true;
-					if (ctx.WHERE() != null){
-						Expression eType = (Expression) visit(ctx.expression());
+					if (ctx.where() != null){
+						Expression eType = (Expression) visit(ctx.where());
 						if (!eType.eError()){
-							String cond = "["+eType.getCondition()+"]";
+							String cond = "["+eType.toString()+"]";
 							
 							XPathFactory xPathfactory = XPathFactory.newInstance();
 							XPath xpath = xPathfactory.newXPath();
@@ -1703,6 +1668,101 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 	public Type visitLiteral(GSQLParser.LiteralContext ctx) {
 		// TODO Auto-generated method stub
 		return super.visitLiteral(ctx);
+	}
+
+	@Override
+	public Type visitOrderBy(GSQLParser.OrderByContext ctx) {
+		// TODO Auto-generated method stub
+		return super.visitOrderBy(ctx);
+	}
+
+	@Override
+	public Type visitWhere(GSQLParser.WhereContext ctx) {
+		return visit(ctx.expression());
+	}
+
+	@Override
+	public Type visitSelect(GSQLParser.SelectContext ctx) {
+		try{
+			CartesianTable cT = (CartesianTable) visit(ctx.from());
+			Element rows = cT.getGeneral();
+			//MultipleExpression where = (MultipleExpression) visit(ctx.where());
+			
+			String tipo="";
+			//HashMap<String,String> referencias = where.getUnaries(where, new HashMap<String,String>());
+			
+			/*String exp = "";
+			
+			for (String r: referencias.keySet()){
+				exp+="//"+r+"[@Reference="+referencias.get(r)+"] and";
+			}*/
+			
+			//String exp = "//row[//personid[@Reference=\'persons\']/text()[0] = //animalid[@Reference=\'animal\']/text()]";
+			String exp = "//personid[@Reference=\'persons\' and text()=//animalid[@Reference = \'animal\']/string()]";
+			
+			File fT = new File("DB/PRUEBASSSSS.md");
+			TransformerFactory transformerFactory = TransformerFactory.newInstance();
+			Transformer transformer = transformerFactory.newTransformer();
+			DOMSource source = new DOMSource(rows);
+			StreamResult results = new StreamResult(fT);
+			transformer.transform(source, results);
+			fT.getParentFile().mkdirs(); 
+			fT.createNewFile();
+		
+			
+			
+			//System.out.println(referencias);
+			
+			//String cond = where.toString();
+			
+			//System.out.println(cond);
+			
+			System.out.println(exp);
+			
+			XPathFactory xPathfactory = XPathFactory.newInstance();
+			XPath xpath = xPathfactory.newXPath();
+			
+			//String exp = "/Table/Database/"+TableActual+"_Row"+cond;
+			XPathExpression expr = xpath.compile(exp);
+			Object result = expr.evaluate(rows, XPathConstants.NODESET);
+	        NodeList nodes = (NodeList) result;
+	        
+	        for (int i=0; i<nodes.getLength(); i++){
+	        	Element e = (Element) nodes.item(i).getParentNode();
+	        	System.out.println(e);
+	        }
+	        
+	        System.out.println(nodes.getLength());
+	        
+		}catch(Exception e){e.printStackTrace();}
+        
+		return null;//super.visitSelect(ctx);
+	}
+
+	@Override
+	public Type visitFrom(GSQLParser.FromContext ctx) {
+		try{
+			long iniciale = System.currentTimeMillis();
+			DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+			DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+			Document doc = docBuilder.newDocument();
+			Element d = doc.createElement("Database");
+			doc.appendChild(d);
+			
+			ArrayList<String> ids = new ArrayList<String>();
+			for (int i=0; i<ctx.Id().size(); i++){
+				ids.add(ctx.Id(i).getText());
+			}
+			
+			
+			CartesianTable cT = new CartesianTable(ids, (HashMap<String,Document>) hmDatabase.clone(), doc);
+			
+			long finale = System.currentTimeMillis();
+			System.out.println("FROM "+TimeUnit.MILLISECONDS.toSeconds(finale - iniciale)+ " segundos.");
+			return cT;
+		}catch(Exception e){e.printStackTrace();}			
+		return null;
+		//return new CartesianTable(ids, hmDatabase, d);
 	}
 	
 }
