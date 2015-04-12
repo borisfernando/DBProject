@@ -1,10 +1,10 @@
 
-public class Expression extends DataType{
+public class Expression extends ValueType{
 	
-	boolean eError;
+	private boolean eError;
 	
-	public Expression(String name, boolean eError) {
-		super(name);
+	public Expression(String name, String value, boolean eError) {
+		super(name,value);
 		this.eError = eError;
 	}
 

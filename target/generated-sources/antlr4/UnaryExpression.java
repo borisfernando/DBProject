@@ -1,22 +1,18 @@
 
 public class UnaryExpression extends Expression {
 	
-	ValueType val;
+	String type;
 	
-	public UnaryExpression(String name, ValueType val, boolean eError) {
-		super(name,eError);
-		this.val = val;
+	public UnaryExpression(String name, String val, String type, boolean eError) {
+		super(name,type,eError);
+		this.type = type;
 	}
 	
-	public String getValue(){
-		return val.getValue();
-	}
-	
-	public ValueType getVal(){
-		return val;
+	public String getType(){
+		return type;
 	}
 	public String toString(){
-		return val.toString();
+		return super.toString();
 	}
 	
 }

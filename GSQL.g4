@@ -161,7 +161,7 @@ relExpression
 	;
 	
 unExpression
-	:	(NOT)? literal											
+	:	(NOT)? selectLiteral											
 	;
 		
 eqOp
@@ -208,12 +208,40 @@ showColumns
 	:	SHOW COLUMNS FROM Id
 	;
 	
+selectLiteral
+	:	select_int
+	|	select_char
+	|	select_float
+	|	select_date
+	|	select_id
+	;
+
+select_int
+	:	Num
+	;
+
+select_float
+	:	Float
+	;
+	
+select_char
+	:	Char
+	;
+
+select_date
+	: 	Date
+	;
+
+select_id
+	:	Id									#simpId_literal
+	|	Id '.' Id							#doubleId_literal
+	;
+	
 literal
 	:	int_literal
 	|	char_literal
 	|	float_literal
 	|	date_literal
-	|	id_literal
 	;
 	
 int_literal
@@ -230,11 +258,6 @@ char_literal
 
 date_literal
 	: 	Date
-	;
-	
-id_literal
-	:	Id									#simpId_literal
-	|	Id '.' Id							#doubleId_literal
 	;
 
 insertInto	

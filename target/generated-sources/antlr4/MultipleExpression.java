@@ -3,14 +3,12 @@ import java.util.HashMap;
 
 public class MultipleExpression extends Expression{
 
-	Expression e1;
-	Expression e2;
-	String opString;
+	private Expression e1;
+	private Expression e2;
 	
 	public MultipleExpression(String name, Expression e1, String op, Expression e2, boolean eError) {
-		super(name,eError);
+		super(name,op,eError);
 		this.e1 = e1;
-		opString = op;
 		this.e2 = e2;
 	}
 	
@@ -20,12 +18,9 @@ public class MultipleExpression extends Expression{
 	public Expression getE2(){
 		return e2;
 	}
-	public String getOp(){
-		return opString;
-	}
 	
 	public String toString(){
-		return e1.toString()+" "+opString+" "+e2.toString();
+		return e1.toString()+" "+getValue()+" "+e2.toString();
 	}
 	
 	public HashMap<String,String> getUnaries(String t,Expression e, HashMap<String,String> columns){
@@ -36,26 +31,26 @@ public class MultipleExpression extends Expression{
 			HashMap<String, String> columnas = (HashMap)columns.clone();
 			for (String s: columns.keySet()){
 				if (!columns.get(s).equals("Expression") && !s.equals("Constant") && !columns.get(s).equals("noReference")){
-					t+="./"+s+"[@Reference=\'"+columns.get(s)+"\']/text() "+exp.getOp()+" ";
+					t+="./"+s+"[@Reference=\'"+columns.get(s)+"\']/text() "+exp.getValue()+" ";
 					columnas.remove(s);
 				}
 				else if(!columns.get(s).equals("Expression") && s.equals("Constant") && !columns.get(s).equals("noReference")){
-					t+=""+columns.get(s)+" "+exp.getOp()+" ";
+					t+=""+columns.get(s)+" "+exp.getValue()+" ";
 					columnas.remove(s);
 				}
 				else if(!columns.get(s).equals("Expression") && !s.equals("Constant") && columns.get(s).equals("noReference")){
-					t+="./"+s+"/text() "+exp.getOp()+" ";
+					t+="./"+s+"/text() "+exp.getValue()+" ";
 					columnas.remove(s);
 				}
 				else{
 					if (columns.keySet().size()==2){
-						t+=s+" "+exp.getOp()+" ";
+						t+=s+" "+exp.getValue()+" ";
 						columnas.remove(s);
 					}
 				}
 			}
 			if (!t.equals("")){
-				t = t.substring(0, (t.length()-exp.getOp().length())-2);				
+				t = t.substring(0, (t.length()-exp.getValue().length())-2);				
 				columns = columnas;
 				columns.put(t, "Expression");
 			}
@@ -63,8 +58,8 @@ public class MultipleExpression extends Expression{
 		}
 		else if (e.getName().equals("Unary")){
 			UnaryExpression uExp = (UnaryExpression) e;
-			ValueType val = uExp.getVal();
-			if (val.getName().equals("ID")){
+			if (uExp.getType().equals("ID")){
+				ValueType val = (ValueType) uExp;
 				IdValueType idVal = (IdValueType) val;
 				if (idVal.hasRef()){
 					columns.put(idVal.getValue(), idVal.getTableRef());
@@ -73,11 +68,11 @@ public class MultipleExpression extends Expression{
 					columns.put(idVal.getValue(), "noReference");
 				}
 			}
-			else if (val.getName().equals("CHAR")){
-				columns.put("Constant", "\'"+val.getValue()+"\'");
+			else if (uExp.getType().equals("CHAR")){
+				columns.put("Constant", "\'"+uExp.getValue()+"\'");
 			}
 			else{
-				columns.put("Constant", val.getValue());
+				columns.put("Constant", uExp.getValue());
 			}
 		}
 		return columns;

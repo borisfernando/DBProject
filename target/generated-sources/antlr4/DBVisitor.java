@@ -24,20 +24,18 @@ import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
-
-
 import com.sun.jmx.interceptor.DefaultMBeanServerInterceptor;
 
 //import sun.org.mozilla.javascript.internal.ast.NewExpression;
 
 public class DBVisitor extends GSQLBaseVisitor<Type>{
-	private String DBActual = "";
-	private String TableActual = "";
-	private int contNumRow = 0;
-	private HashMap<String, Document> hmDatabase;
-	private HashMap<String, Index> hmPrimaryKeyDatabase; 
-	private ArrayList<String> columnsFromTable;
-	private HashMap<String,ArrayList<String>> PrimaryKeys = new HashMap<String,ArrayList<String>>();;
+	private static String DBActual = "";
+	private static String TableActual = "";
+	private static int contNumRow = 0;
+	private static HashMap<String, Document> hmDatabase;
+	private static HashMap<String, Index> hmPrimaryKeyDatabase; 
+	private static ArrayList<String> columnsFromTable;
+	private static HashMap<String,ArrayList<String>> PrimaryKeys = new HashMap<String,ArrayList<String>>();;
 	
 	public DBVisitor(){
 		PrimaryKeys = new HashMap<String, ArrayList<String>>();
@@ -822,12 +820,6 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 	public Type visitDateType(GSQLParser.DateTypeContext ctx) {
 		return new DataType(ctx.getText());
 	}
-
-	@Override
-	public Type visitDate_literal(GSQLParser.Date_literalContext ctx) {
-		ValueType t = new ValueType("DATE",ctx.Date().getText());
-		return new UnaryExpression("Unary", t, false);
-	}
 	
 	@Override
 	public Type visitUnExpression(GSQLParser.UnExpressionContext ctx) {
@@ -835,7 +827,7 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 			return null;
 		}
 		else{
-			return visit(ctx.literal());
+			return visit(ctx.selectLiteral());
 		}
 	}
 
@@ -843,7 +835,7 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 	public Type visitShowTables(GSQLParser.ShowTablesContext ctx) {
 		// TODO Auto-generated method stub
 		try{
-			Table t = new Table();
+			Tables t = new Tables();
 			File folder = new File("DB/"+DBActual+"/");
 			File[] listOfFiles = folder.listFiles();
 			String[] nombres = new String[listOfFiles.length-1];
@@ -854,7 +846,7 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 					contadorN++;
 				}
 			}
-			t.agregarDatabase(DBActual, nombres);
+			t.addDatabase(DBActual, nombres);
 			for (File file : listOfFiles) {
 				if (file.isFile() && file.getName().contains(".xml")){
 					String name1 = file.getName();
@@ -875,19 +867,20 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 						columns[i] = nombre;
 						hmNumberColumn.put(nombre, i);
 					}
-					t.agregarTabla(file.getName().substring(0, file.getName().indexOf(".xml")), columns, databaseElement.getChildNodes().getLength());
+					t.addTables(file.getName().substring(0, file.getName().indexOf(".xml")), columns, databaseElement.getChildNodes().getLength());
 					for (int i=0; i<databaseElement.getChildNodes().getLength(); i++){
 						Element tActual = (Element) databaseElement.getChildNodes().item(i);
 						String[] datos = new String[tActual.getChildNodes().getLength()];
 						for (int j=0; j<columns.length; j++){
 							String dato = tActual.getElementsByTagName(columns[j]).item(0).getTextContent();
+							System.out.println(dato);
 							datos[j] = dato;
 						}
-						t.agregarDatosTabla(datos);
+						t.addData(datos);
 					}
 				}
 			}
-			t.mostrarTabla();
+			t.showTables();
 		}catch(Exception e){e.printStackTrace();}
 		return super.visitShowTables(ctx);
 	}
@@ -1229,10 +1222,7 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 								Element newElement = doc.createElement(e.getNodeName());
 								boolean esPK = pkColumns.contains(e.getNodeName());
 								if (ctx.literal(i)!=null){
-									Type tipoL = visit(ctx.literal(i));
-									UnaryExpression tipoLE = (UnaryExpression) tipoL;
-									
-									ValueType vT = tipoLE.getVal();
+									ValueType vT = (ValueType) visit(ctx.literal(i));
 									String valType = vT.getName().toUpperCase();
 					        		String valColumn = e.getAttribute("Type").toUpperCase();
 									
@@ -1357,12 +1347,6 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 	}
 
 	@Override
-	public Type visitInt_literal(GSQLParser.Int_literalContext ctx) {
-		ValueType t = new ValueType("INT",ctx.Num().getText());
-		return new UnaryExpression("Unary", t, false);
-	}
-
-	@Override
 	public Type visitEqAndExpression(GSQLParser.EqAndExpressionContext ctx) {
 		return visit(ctx.eqExpression());
 	}
@@ -1412,33 +1396,64 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 		// TODO Auto-generated method stub
 		return super.visitDatabase(ctx);
 	}
+	
+	@Override
+	public Type visitInt_literal(GSQLParser.Int_literalContext ctx) {
+		return new ValueType("INT", ctx.getText());
+	}
 
 	@Override
-	public Type visitChar_literal(GSQLParser.Char_literalContext ctx) {	
-		String t = ctx.Char().getText().substring(1, ctx.Char().getText().length()-1);
-		ValueType val = new ValueType("CHAR", t);
-		return new UnaryExpression("Unary", val, false);
+	public Type visitChar_literal(GSQLParser.Char_literalContext ctx) {
+		return new ValueType("CHAR", ctx.getText());
 	}
 
 	@Override
 	public Type visitFloat_literal(GSQLParser.Float_literalContext ctx) {
-		ValueType t = new ValueType("FLOAT",ctx.Float().getText());
-		return new UnaryExpression("Unary", t, false);
+		return new ValueType("FLOAT", ctx.getText());
+	}
+
+	@Override
+	public Type visitDate_literal(GSQLParser.Date_literalContext ctx) {
+		return new ValueType("DATE", ctx.getText());
+	}
+
+	@Override
+	public Type visitSelectLiteral(GSQLParser.SelectLiteralContext ctx) {
+		return super.visitSelectLiteral(ctx);
+	}
+
+	@Override
+	public Type visitSelect_int(GSQLParser.Select_intContext ctx) {
+		return new UnaryExpression("Unary", ctx.Num().getText(),"INT", false);
+	}
+
+	@Override
+	public Type visitSelect_char(GSQLParser.Select_charContext ctx) {	
+		String t = ctx.Char().getText().substring(1, ctx.Char().getText().length()-1);
+		return new UnaryExpression("Unary", t, "CHAR", false);
+	}
+
+	@Override
+	public Type visitSelect_float(GSQLParser.Select_floatContext ctx) {
+		return new UnaryExpression("Unary", ctx.Float().getText(), "FLOAT", false);
+	}
+	
+	@Override
+	public Type visitSelect_date(GSQLParser.Select_dateContext ctx) {
+		return new UnaryExpression("Unary", ctx.Date().getText(), "DATE", false);
 	}
 
 	@Override
 	public Type visitDoubleId_literal(GSQLParser.DoubleId_literalContext ctx) {
-		ValueType t = new IdValueType("ID",ctx.Id(1).getText(),ctx.Id(0).getText(),true);
 		boolean error = !(DBM.existColumnInTable(new File("DB/"+DBActual+"/"+ctx.Id(0).getText()+".xml"), ctx.Id(1).getText()));
 		if (error)
 			System.out.println("Column "+ctx.Id(1).getText()+" does not exist in table "+ctx.Id(0).getText());
-		return new UnaryExpression("Unary", t, error);
+		return new IdValueType("Unary", ctx.Id(1).getText(), ctx.Id(0).getText(), "ID", error, true);
 	}
 
 	@Override
 	public Type visitSimpId_literal(GSQLParser.SimpId_literalContext ctx) {
 		String id = ctx.Id().getText();
-		ValueType t = new IdValueType("ID",id,"",false);
 		boolean error = false;
 		if (!TableActual.equals("")){
 			error = !(DBM.existColumnInTable(new File("DB/"+DBActual+"/"+TableActual+".xml"), id));
@@ -1454,8 +1469,9 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 			System.out.println("Column name "+id+" does not exist");
 			error = true;
 		}
-		return new UnaryExpression("Unary", t, error);
+		return new IdValueType("Unary", id, "", "ID", error, false);
 	}
+	
 
 	@Override
 	public Type visitEqRelExpression(GSQLParser.EqRelExpressionContext ctx) {
@@ -1517,7 +1533,7 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 					        		String columnString = ctx.Id(j).getText();
 					        		Element columnValueElement = (Element) columnElement.getElementsByTagName(columnString).item(0);
 					        		UnaryExpression uT = (UnaryExpression) visit(ctx.literal(j-1)); 
-					        		ValueType vT = uT.getVal();
+					        		ValueType vT = (ValueType) uT;
 					        		String valType = vT.getName().toUpperCase();
 					        		String valColumn = columnValueElement.getAttribute("Type").toUpperCase();
 					        		if (valType.equals(valColumn)){
@@ -1706,7 +1722,7 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 			Element rows = cT.getGeneral();
 			MultipleExpression where = (MultipleExpression) visit(ctx.where());
 			if (!where.eError()){
-				String tipo="";
+				String tipo = "";
 				String t = "";
 				HashMap<String,String> referencias = where.getUnaries(t,where, new HashMap<String,String>());
 				
@@ -1717,6 +1733,8 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 				
 				//use database db; select * from persons, fechas where persons.personid=10;
 				//exp = "/Database/row[./personid[@Reference = \'persons\']/text() = ./fechaid[@Reference=\'fechas\']/text()]";
+				
+				//Table
 				
 				File fT = new File("DB/PRUEBASSSSS.md");
 				TransformerFactory transformerFactory = TransformerFactory.newInstance();

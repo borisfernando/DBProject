@@ -1,11 +1,11 @@
 
-public class IdValueType extends ValueType{
+public class IdValueType extends UnaryExpression{
 	
 	private String tableRef;
 	private boolean hasRef;
 	
-	public IdValueType(String name, String column, String tableRef, boolean hasRef) {
-		super(name, column);
+	public IdValueType(String name, String val, String type, String tableRef, boolean error, boolean hasRef) {
+		super(name, val, type, error);
 		this.tableRef = tableRef;
 		this.hasRef = hasRef;
 	}
