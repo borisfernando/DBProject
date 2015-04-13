@@ -36,12 +36,14 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 	private static HashMap<String, Index> hmPrimaryKeyDatabase; 
 	private static ArrayList<String> columnsFromTable;
 	private static HashMap<String,ArrayList<String>> PrimaryKeys = new HashMap<String,ArrayList<String>>();;
+	private Tables table;
 	
 	public DBVisitor(){
-		PrimaryKeys = new HashMap<String, ArrayList<String>>();
-		hmDatabase = new HashMap<String, Document>();
-		hmPrimaryKeyDatabase = new HashMap<String, Index>();
+		//PrimaryKeys = new HashMap<String, ArrayList<String>>();
+		//hmDatabase = new HashMap<String, Document>();
+		//hmPrimaryKeyDatabase = new HashMap<String, Index>();
 		columnsFromTable = new ArrayList<String>();
+		table = new Tables();
 		DBM.createMetadataD();
 	}
 	
@@ -738,7 +740,6 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 					        	Element e = (Element) nodes.item(i);
 					        	
 					        	String pkVal = e.getAttributes().item(0).getTextContent();
-					        	System.out.println(pkVal);
 					        	PrimaryKeys.get(ctx.Id().getText()).remove(pkVal);
 					        	
 					        	String condR = "[";
@@ -873,7 +874,6 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 						String[] datos = new String[tActual.getChildNodes().getLength()];
 						for (int j=0; j<columns.length; j++){
 							String dato = tActual.getElementsByTagName(columns[j]).item(0).getTextContent();
-							System.out.println(dato);
 							datos[j] = dato;
 						}
 						t.addData(datos);
@@ -1448,7 +1448,7 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 		boolean error = !(DBM.existColumnInTable(new File("DB/"+DBActual+"/"+ctx.Id(0).getText()+".xml"), ctx.Id(1).getText()));
 		if (error)
 			System.out.println("Column "+ctx.Id(1).getText()+" does not exist in table "+ctx.Id(0).getText());
-		return new IdValueType("Unary", ctx.Id(1).getText(), ctx.Id(0).getText(), "ID", error, true);
+		return new IdValueType("Unary", ctx.Id(1).getText(), "ID", ctx.Id(0).getText(), error, true);
 	}
 
 	@Override
@@ -1469,7 +1469,7 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 			System.out.println("Column name "+id+" does not exist");
 			error = true;
 		}
-		return new IdValueType("Unary", id, "", "ID", error, false);
+		return new IdValueType("Unary", id, "ID", "", error, false);
 	}
 	
 
@@ -1706,8 +1706,30 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 
 	@Override
 	public Type visitOrderBy(GSQLParser.OrderByContext ctx) {
-		// TODO Auto-generated method stub
-		return super.visitOrderBy(ctx);
+		String[][] order = new String[ctx.select_id().size()][ctx.select_id().size()];
+		for (int i=0; i<ctx.select_id().size(); i++){
+			String[] orderS = new String[3];
+			UnaryExpression ids = (UnaryExpression) visit(ctx.select_id(i));
+			IdValueType idVal = (IdValueType) ids;
+			String id = idVal.getValue();
+			if (idVal.hasRef()){
+				orderS[0] = id;
+				orderS[2] = idVal.getTableRef();
+			}
+			else{
+				orderS[0] = id;
+				orderS[2] = null;
+			}
+			orderS[1] = visit(ctx.orderType(i)).toString();
+			order[i] = orderS;
+		}
+		table.orderTable(order);
+		return null;//super.visitOrderBy(ctx);
+	}
+
+	@Override
+	public Type visitOrderType(GSQLParser.OrderTypeContext ctx) {
+		return new ValueType("ORDER", ctx.getText());
 	}
 
 	@Override
@@ -1722,10 +1744,9 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 			Element rows = cT.getGeneral();
 			MultipleExpression where = (MultipleExpression) visit(ctx.where());
 			if (!where.eError()){
-				String tipo = "";
 				String t = "";
 				HashMap<String,String> referencias = where.getUnaries(t,where, new HashMap<String,String>());
-				
+								
 				String exp = "/Database/row[";
 				for (String r: referencias.keySet()){
 					exp+=r+"]";
@@ -1734,7 +1755,6 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 				//use database db; select * from persons, fechas where persons.personid=10;
 				//exp = "/Database/row[./personid[@Reference = \'persons\']/text() = ./fechaid[@Reference=\'fechas\']/text()]";
 				
-				//Table
 				
 				File fT = new File("DB/PRUEBASSSSS.md");
 				TransformerFactory transformerFactory = TransformerFactory.newInstance();
@@ -1752,19 +1772,88 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 		        NodeList nodes = (NodeList) result;
 		        
 		        for (int i=0; i<nodes.getLength(); i++){
-		        	Element e = (Element) nodes.item(i).getParentNode();
-		        	//System.out.println(e);
+		        	if (ctx.all==null){
+		        		String[] column = new String[ctx.select_id().size()];
+		        		String[] columnHead = new String[ctx.select_id().size()];
+		        		for (int j=0; j<ctx.select_id().size(); j++){
+		        			Element eActual = (Element) nodes.item(i);
+		        			UnaryExpression ids = (UnaryExpression) visit(ctx.select_id(j));
+		        			IdValueType idVal = (IdValueType) ids;
+		        			String id = idVal.getValue();
+		        			if (eActual.getElementsByTagName(id).getLength()==1){
+		        				if (!idVal.hasRef()){
+		        					columnHead[j] = id;
+		        				}
+		        				else{
+		        					columnHead[j] = idVal.getTableRef()+"."+id;
+		        				}
+		        				Element eCampo = (Element) eActual.getElementsByTagName(id).item(0);
+		        				column[j] = eCampo.getTextContent();
+		        				table.addTableSelect(column);
+		        			}
+		        			else if(eActual.getElementsByTagName(id).getLength()>1 && idVal.hasRef()){
+		        				columnHead[j] = idVal.getTableRef()+"."+id;
+		        				NodeList nodos = eActual.getElementsByTagName(id);
+		        				boolean hubo = false;
+		        				for (int k=0; k<nodos.getLength(); k++){
+		        					Element eCampo = (Element) eActual.getElementsByTagName(id).item(k);
+			        				if (eCampo.getAttribute("Reference").equals(idVal.getTableRef())){
+			        					column[j] = eCampo.getTextContent();
+			        					hubo = true;
+			        				}
+		        				}
+		        				if (hubo){
+		        					table.addTableSelect(column);
+		        				}
+		        				else{
+		        					System.out.println("Reference "+idVal.getTableRef()+" does not exist; or column "+id+" does not exist in the reference.");
+		        				}
+		        			}
+		        			else if(eActual.getElementsByTagName(id).getLength()>0 && !idVal.hasRef()){
+		        				System.out.println("Column duplicated. Please specify the table.");
+		        			}
+		        			else{
+		        				System.out.println("Column "+id+" does not exist in relation.");
+		        			}
+			        	}
+		        		table.setTableHeader(columnHead);
+		        	}
+		        	else{
+		        		Element eActual = (Element) nodes.item(i);
+		        		String[] column = new String[eActual.getChildNodes().getLength()];
+		        		if (i==0){
+			        		String[] columnHead = new String[column.length];
+			        		for (int j=0; j<eActual.getChildNodes().getLength(); j++){
+			        			Element hijoActual = (Element) eActual.getChildNodes().item(j);
+			        			columnHead[j] = hijoActual.getAttribute("Reference")+"."+hijoActual.getNodeName();
+			        			//columnHead[j] = hijoActual.getNodeName();
+			        		}
+			        		table.setTableHeader(columnHead);
+		        		}
+		        		for (int j=0; j<eActual.getChildNodes().getLength(); j++){
+		        			Element hijoActual = (Element) eActual.getChildNodes().item(j);
+		        			int index = table.getIndexOfColumn(hijoActual.getAttribute("Reference")+"."+hijoActual.getNodeName());
+		        			//int index = table.getIndexOfColumn(hijoActual.getNodeName());
+		        			column[index] = hijoActual.getTextContent();
+		        		}
+		        		table.addTableSelect(column);
+		        	}
 		        }
 		        
-		        System.out.println(nodes.getLength());
-				
+		        if (ctx.orderBy()==null){
+		        	table.showTable();
+		        }
+		        else{
+		        	visit(ctx.orderBy());
+		        	//table.showTable();
+		        }
 			}
 			else{
 				System.out.println("Error in expression.");
 			}
 		}catch(Exception e){e.printStackTrace();}
         
-		return null;//super.visitSelect(ctx);
+		return null;
 	}
 
 	@Override

@@ -4,7 +4,7 @@ public class UnaryExpression extends Expression {
 	String type;
 	
 	public UnaryExpression(String name, String val, String type, boolean eError) {
-		super(name,type,eError);
+		super(name,val,eError);
 		this.type = type;
 	}
 	
