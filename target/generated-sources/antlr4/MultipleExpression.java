@@ -1,4 +1,6 @@
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.TreeMap;
 
 
 public class MultipleExpression extends Expression{
@@ -29,17 +31,19 @@ public class MultipleExpression extends Expression{
 			columns = getUnaries(t,exp.getE1(),columns);
 			columns = getUnaries(t,exp.getE2(),columns);
 			HashMap<String, String> columnas = (HashMap)columns.clone();
-			for (String s: columns.keySet()){
-				if (!columns.get(s).equals("Expression") && !s.equals("Constant") && !columns.get(s).equals("noReference")){
-					t+="./"+s+"[@Reference=\'"+columns.get(s)+"\']/text() "+exp.getValue()+" ";
+			TreeMap<String,String> columnasSorted = new TreeMap<String, String>();
+			columnasSorted.putAll(columnas);
+			for (String s: columnasSorted.keySet()){
+				if (!columns.get(s).equals("Expression") && !s.equals("oConstant") && !s.equals("noReference")){
+					t+="./"+columns.get(s)+"[@Reference=\'"+s+"\']/text() "+exp.getValue()+" ";
 					columnas.remove(s);
 				}
-				else if(!columns.get(s).equals("Expression") && s.equals("Constant") && !columns.get(s).equals("noReference")){
+				else if(!columns.get(s).equals("Expression") && s.equals("oConstant") && !s.equals("noReference")){
 					t+=""+columns.get(s)+" "+exp.getValue()+" ";
 					columnas.remove(s);
 				}
-				else if(!columns.get(s).equals("Expression") && !s.equals("Constant") && columns.get(s).equals("noReference")){
-					t+="./"+s+"/text() "+exp.getValue()+" ";
+				else if(!columns.get(s).equals("Expression") && !s.equals("oConstant") && s.equals("noReference")){
+					t+="./"+columns.get(s)+"/text() "+exp.getValue()+" ";
 					columnas.remove(s);
 				}
 				else{
@@ -62,17 +66,17 @@ public class MultipleExpression extends Expression{
 				ValueType val = (ValueType) uExp;
 				IdValueType idVal = (IdValueType) val;
 				if (idVal.hasRef()){
-					columns.put(idVal.getValue(), idVal.getTableRef());
+					columns.put(idVal.getTableRef(),idVal.getValue());
 				}
 				else{
-					columns.put(idVal.getValue(), "noReference");
+					columns.put("noReference",idVal.getValue());
 				}
 			}
 			else if (uExp.getType().equals("CHAR")){
-				columns.put("Constant", "\'"+uExp.getValue()+"\'");
+				columns.put("oConstant", "\'"+uExp.getValue()+"\'");
 			}
 			else{
-				columns.put("Constant", uExp.getValue());
+				columns.put("oConstant", uExp.getValue());
 			}
 		}
 		return columns;

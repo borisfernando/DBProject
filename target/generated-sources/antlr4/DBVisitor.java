@@ -352,7 +352,9 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 			File f = new File("DB/"+DBActual+"/"+ctx.Id(0).getText()+".xml");
 			if (DBM.existDB(DBActual)){
 				if (DBM.existTable(DBActual,ctx.Id(0).getText())){
-					File fN = new File("DB/"+DBActual+"/"+ctx.Id(1).getText()+".xml");
+					String idNew = ctx.Id(1).getText();
+					String idOld = ctx.Id(0).getText();
+					File fN = new File("DB/"+DBActual+"/"+idNew+".xml");
 					DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
 					DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
 					Document doc = docBuilder.parse(f);
@@ -362,7 +364,7 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 					Node databaseElement = rootElement.getLastChild();
 					
 					for (int i=0; i<databaseElement.getChildNodes().getLength(); i++){
-						doc.renameNode(databaseElement.getChildNodes().item(i), ctx.Id(1).getText(), ctx.Id(1).getText());
+						doc.renameNode(databaseElement.getChildNodes().item(i), null, idNew);
 					}
 					
 					File[] folder = new File("DB/"+DBActual+"/").listFiles();
@@ -374,7 +376,9 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 							NodeList listFK = rootElement2.getElementsByTagName("FK");
 							for (int i=0; i<listFK.getLength(); i++){
 								Element eFK = (Element) listFK.item(i);
-								eFK.setAttribute("Table", ctx.Id(1).getText());
+								if (eFK.getAttribute("Table").equals(idOld)){
+									eFK.setAttribute("Table", idNew);
+								}
 							}
 							TransformerFactory transformerFactory = TransformerFactory.newInstance();
 							Transformer transformer = transformerFactory.newTransformer();
@@ -391,15 +395,16 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 					transformer.transform(source, result);
 					f.renameTo(fN);
 					f.getParentFile().mkdirs();
-					DBActual = DBM.changeNameT(DBActual,ctx.Id(0).getText(),ctx.Id(1).getText());
-					System.out.println("Correct. Table name "+ctx.Id(0).getText()+", changed to "+ctx.Id(1).getText()+".");
+					//DBActual = DBM.changeNameT(DBActual,idOld,idNew);
+					DBM.changeNameT(DBActual,idOld,idNew);
+					System.out.println("Correct. Table name "+idOld+", changed to "+idNew+".");
 				}
 				else{
 					System.out.println("Table "+ctx.Id(0).getText()+" does not exist.");
 				}
 			}
 		}catch(Exception e){e.printStackTrace();}
-		return null;//super.visitRenameAlterTable(ctx);
+		return null;
 	}
 	
 	@Override
@@ -908,6 +913,7 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 			
 			Element rootElement = doc.getDocumentElement();
 			Element modelElement = (Element) rootElement.getFirstChild();
+			Element columnElement = (Element) modelElement.getFirstChild();
 			Element constraintElement = (Element) modelElement.getLastChild();
 			Element pkElement = (Element) constraintElement.getFirstChild();
 			Element fkElement = (Element) constraintElement.getLastChild();
@@ -939,7 +945,14 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 						columnsArrayList.add(childElement.getTextContent());
 					}
 					for (int j=0; j<columnsArrayList.size(); j++){
-						NodeList nodosList = rootElement.getElementsByTagName(columnsArrayList.get(j));
+						NodeList nodosList = columnElement.getElementsByTagName(columnsArrayList.get(j));
+						for (int k=0; k<nodosList.getLength(); k++){
+							Element pElement = (Element) nodosList.item(k).getParentNode();
+							pElement.removeChild(nodosList.item(k));
+						}
+					}
+					for (int j=0; j<columnsArrayList.size(); j++){
+						NodeList nodosList = databaseElement.getElementsByTagName(columnsArrayList.get(j));
 						for (int k=0; k<nodosList.getLength(); k++){
 							Element pElement = (Element) nodosList.item(k).getParentNode();
 							pElement.removeChild(nodosList.item(k));
@@ -1023,6 +1036,7 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 				}
 			}
 			else if(t.getName().equals("PK") && pkElement.hasChildNodes()){
+				paso = false;
 				System.out.println("False. Theres already a PK");
 			}
 			else if(t.getName().equals("FK")){
@@ -1065,7 +1079,8 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 						paso = false;
 					}
 				}
-				fkElement.appendChild(fkChildElement);
+				if (paso)
+					fkElement.appendChild(fkChildElement);
 			}
 			else{
 				paso = false;
@@ -1164,7 +1179,7 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 					        		String valColumn = columnElement.getAttribute("Type").toUpperCase();
 									
 									if (valType.equals(valColumn)){
-										String value = vT.getValue();
+										String value = vT.getValue().substring(1, vT.getValue().length()-1);
 										if(vT.getName().equals("CHAR")){
 											if (Integer.parseInt(columnElement.getAttribute("Length"))>value.length()){
 												if (esPK){
@@ -1404,7 +1419,9 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 
 	@Override
 	public Type visitChar_literal(GSQLParser.Char_literalContext ctx) {
-		return new ValueType("CHAR", ctx.getText());
+		String val = ctx.getText();
+		val = val.substring(1, val.length()-1);
+		return new ValueType("CHAR", val);
 	}
 
 	@Override
@@ -1756,21 +1773,20 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 				//exp = "/Database/row[./personid[@Reference = \'persons\']/text() = ./fechaid[@Reference=\'fechas\']/text()]";
 				
 				
-				File fT = new File("DB/PRUEBASSSSS.md");
+				/*File fT = new File("DB/PRUEBASSSSS.md");
 				TransformerFactory transformerFactory = TransformerFactory.newInstance();
 				Transformer transformer = transformerFactory.newTransformer();
 				DOMSource source = new DOMSource(rows);
 				StreamResult results = new StreamResult(fT);
 				transformer.transform(source, results);
 				fT.getParentFile().mkdirs(); 
-				fT.createNewFile();
+				fT.createNewFile();*/
 				
 				XPathFactory xPathfactory = XPathFactory.newInstance();
 				XPath xpath = xPathfactory.newXPath();
 				XPathExpression expr = xpath.compile(exp);
 				Object result = expr.evaluate(rows, XPathConstants.NODESET);
 		        NodeList nodes = (NodeList) result;
-		        
 		        for (int i=0; i<nodes.getLength(); i++){
 		        	if (ctx.all==null){
 		        		String[] column = new String[ctx.select_id().size()];
@@ -1840,12 +1856,15 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 		        	}
 		        }
 		        
-		        if (ctx.orderBy()==null){
+		        if (ctx.orderBy()==null && nodes.getLength()!=0){
 		        	table.showTable();
 		        }
-		        else{
+		        else if (ctx.orderBy()!=null && nodes.getLength()!=0){
 		        	visit(ctx.orderBy());
 		        	//table.showTable();
+		        }
+		        else{
+		        	System.out.println("No results");
 		        }
 			}
 			else{
