@@ -21,8 +21,10 @@ public class Tables {
 	private ArrayList<String[]> allColumn;
 	private ArrayList<String[]> allTables;
 	private ArrayList<String> nameTable;
+	private ArrayList<ValueType[]> allRows;
 	private JComboBox<Object> jCBDatabase;
 	private String[] columnHeader;
+	private String[] columnSelect;
 	private JFrame fG;
 	private int contTablas = 0;
 	private static int numFila = 0;
@@ -32,6 +34,18 @@ public class Tables {
 		allColumn = new ArrayList<String[]>();
 		allTables = new ArrayList<String[]>();
 		nameTable = new ArrayList<String>();
+		allRows = new ArrayList<ValueType[]>();
+		fG = new JFrame();
+		contTablas = 0;
+		numFila = 0;
+	}
+	
+	public void reset(){
+		allData = new ArrayList<String[][]>();
+		allColumn = new ArrayList<String[]>();
+		allTables = new ArrayList<String[]>();
+		nameTable = new ArrayList<String>();
+		allRows = new ArrayList<ValueType[]>();
 		fG = new JFrame();
 		contTablas = 0;
 		numFila = 0;
@@ -45,8 +59,16 @@ public class Tables {
 			nameTable.add(t);
 	}
 	
-	public void addTableSelect(String[] table){
+	public void addTable(String[] table){
 		allTables.add(table);
+	}
+	
+	public void addTableSelect(ValueType[] table){
+		allRows.add(table);
+	}
+	
+	public void setColumnSelect(String[] columnSelect){
+		this.columnSelect = columnSelect;
 	}
 	
 	public void setTableHeader(String[] columnHeader){
@@ -64,49 +86,127 @@ public class Tables {
 		}
 		return -1;
 	}
+
+	public int getIndexOfColumnSelect(String column){
+		for (int i=0; i<columnSelect.length; i++){
+			if (columnSelect[i].equals(column)){
+				return i;
+			}
+			else if(columnSelect[i].substring(columnSelect[i].indexOf(".")+1, columnSelect[i].length()).equals(column)){
+				return i;
+			}
+		}
+		return -1;
+	}
+
 	
 	public void orderTable(final String[][] orderParam){
-		printTable(orderParam);
-		
-		Collections.sort(allTables,new Comparator<String[]>() {
-            public int compare(String[] strings, String[] otherStrings) {
-            	int result = 0;
-            	for (int i=0; i<orderParam.length; i++){
-            		String[] orderActual = orderParam[i];
-        			int index=-1;
-        			if (orderActual[2]!=null){
-        				index = getIndexOfColumn(orderActual[2]+"."+orderActual[0]);
-        				if (index==-1){
-        					index = getIndexOfColumn(orderActual[0]);
-        				}				
-        			}
-        			else{
-        				index = getIndexOfColumn(orderActual[0]);
-        			}
-        			final int indexOf = index;
-        			if (index!=-1){
-        				if(orderActual[1].toUpperCase().equals("ASC")){
-        					Collections.reverse(allTables);
-        				}
-        			}
-        			else{
-        				System.out.println("Column "+orderActual[0]+" does not exist.");
-        			}
-        			if (result==0){
-        				result = strings[indexOf].compareTo(otherStrings[indexOf]);
-        			}
-            	}
-                return result;
-            }
-        });
-		
-		for(int i =0; i<orderParam.length; i++){
-			
+		boolean error = false;
+		for (int i=0; i<orderParam.length; i++){
+			String[] orderActual = orderParam[i];
+			int index = getIndexOfColumn(orderActual[0]);
+			if (index==-1){
+				System.out.println("Column "+orderActual[0]+" does not exist. Or is not in the select.");
+				error = true;
+			}
 		}
-		showTable();
+		if (!error){
+			Collections.sort(allRows,new Comparator<ValueType[]>() {
+		        public int compare(ValueType[] strings, ValueType[] otherStrings) {
+		        	int result = 0;
+		        	for (int i=0; i<orderParam.length; i++){
+		        		String[] orderActual = orderParam[i];
+		    			int index = getIndexOfColumn(orderActual[0]);
+		    			final int indexOf = index;
+		    			if (result==0){
+		    				if (strings[indexOf].getName().equals("INT")){
+		    					int uno = Integer.parseInt(strings[indexOf].getValue());
+		    					int dos = Integer.parseInt(otherStrings[indexOf].getValue());
+		    					if (orderActual[1].toUpperCase().equals("DESC")){
+		    						result = dos - uno;
+		    					}
+		    					else{
+		    						result = uno - dos;
+		    					}
+		    				}
+		    				else if(strings[indexOf].getName().equals("FLOAT")){
+		    					float uno = Float.parseFloat(strings[indexOf].getValue());
+		    					float dos = Float.parseFloat(otherStrings[indexOf].getValue());
+		    					int p = 1;
+		    					if (orderActual[1].toUpperCase().equals("DESC")){
+		    						p = -1;
+		    					}
+		    					if (uno>dos){
+		    						result = 1*p;
+		    					}
+		    					else if(uno<dos){
+		    						result = -1*p;
+		    					}
+		    					else{
+		    						result = 0;
+		    					}
+		    				}
+		    				else if (strings[indexOf].getName().equals("DATE")){
+		    					String date1 = strings[indexOf].getValue();
+		    					int year1 = Integer.parseInt(date1.substring(0, 4));
+		    					int month1 = Integer.parseInt(date1.substring(5, 7));
+		    					int day1 = Integer.parseInt(date1.substring(8,10));
+		    					
+		    					String date2 = otherStrings[indexOf].getValue();
+		    					int year2 = Integer.parseInt(date2.substring(0, 4));
+		    					int month2 = Integer.parseInt(date2.substring(5, 7));
+		    					int day2 = Integer.parseInt(date2.substring(8,10));
+		    					int p = 1;
+		    					if (orderActual[1].toUpperCase().equals("DESC")){
+		    						p = -1;
+		    					}
+		    					
+		    					if (year1>year2){
+		    						result = 1*p;
+		    					}
+		    					else if(year1<year2){
+		    						result = -1*p;
+		    					}
+		    					else if(year1==year2){
+		    						if (month1>month2){
+			    						result = 1*p;
+			    					}
+			    					else if(month1<month2){
+			    						result = -1*p;
+			    					}
+			    					else if(month1==month2){
+			    						if (day1>day2){
+				    						result = 1*p;
+				    					}
+				    					else if(day1<day2){
+				    						result = -1*p;
+				    					}
+				    					else if(day1==day2){
+				    						result = 0;
+				    					}
+			    					}
+		    					}
+		    					
+		    				}
+		    				else{
+		    					int p = 1;
+		    					if (orderActual[1].toUpperCase().equals("DESC")){
+		    						p = -1;
+		    					}
+		    					result = (strings[indexOf].getValue().compareTo(otherStrings[indexOf].getValue()))*p;
+		    				}
+		    			}
+		        	}
+		            return result;
+		        }
+		    });
+			showTable();
+		}
 	}
 	
-	
+	public void setColumnSelectAll(){
+		columnSelect = columnHeader; 
+	}
 	
 	public void addTables(String tituloT, String[] encabezados, int cantFilas){
 		contTablas+=1;
@@ -140,11 +240,16 @@ public class Tables {
 	public void showTable(){
 		 try{
 	        	fG = new JFrame();
-	        	String[][] data = new String[allTables.size()][allTables.get(0).length];
-	        	for (int i=0 ; i<allTables.size(); i++){
-	        		data[i] = allTables.get(i);
+	        	Object[][] data = new Object[allRows.size()][columnSelect.length];
+	        	for (int i=0 ; i<allRows.size(); i++){
+	        		ValueType[] row = new ValueType[columnSelect.length];
+	        		for (int j=0; j<columnSelect.length; j++){
+	        			int index = getIndexOfColumn(columnSelect[j]);
+	        			row[j] = allRows.get(i)[index];
+	        		}
+	        		data[i] = row;
 	        	}
-	        	JTable table = new JTable(data,columnHeader);
+	        	JTable table = new JTable(data,columnSelect);
 	        	table.setPreferredScrollableViewportSize(new Dimension(1000, 70));
                 table.setEnabled(false);
                 table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
@@ -160,10 +265,33 @@ public class Tables {
 	        }
 	}
 	
+	public void show(){
+		try{
+        	fG = new JFrame();
+        	Object[][] data = new Object[allTables.size()][columnSelect.length];
+        	for (int i=0 ; i<allTables.size(); i++){
+        		String[] row = allTables.get(i);
+        		data[i] = row;
+        	}
+        	JTable table = new JTable(data,columnSelect);
+        	table.setPreferredScrollableViewportSize(new Dimension(1000, 70));
+            table.setEnabled(false);
+            table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
+            table.setFillsViewportHeight(true);
+            JScrollPane scrollPane = new JScrollPane(table);
+            fG.getContentPane().add(scrollPane, BorderLayout.CENTER);
+            fG.pack();
+            fG.setVisible(true);
+            fG.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+            
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+	}
+	
 	public void showTables(){
         try{
         	fG = new JFrame();
-        	//System.out.println(nameTable);
         	String[] n = new String[nameTable.size()];
         	for (int i=0; i<nameTable.size(); i++){        		
         		n[i] = nameTable.get(i);

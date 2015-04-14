@@ -1,3 +1,4 @@
+
 import java.io.File;
 
 import javax.xml.xpath.XPath;
@@ -718,6 +719,7 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 		try{
 			if (DBM.existDB(DBActual)){
 				if (DBM.existTable(DBActual,ctx.Id().getText())){
+					String id = ctx.Id().getText();
 					TableActual = ctx.Id().getText();
 					Document doc = hmDatabase.get(ctx.Id().getText());
 					doc.getDocumentElement().normalize();
@@ -755,14 +757,12 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 						        }
 						        String v1 = e.getElementsByTagName(pkColumns.get(pkColumns.size()-1)).item(0).getTextContent();
 						        condR+=pkColumns.get(pkColumns.size()-1)+"="+v1+"]";
-						        
 						        File folder = new File("DB/"+DBActual+"/");
 			        			for (File f: folder.listFiles()){
-			        				if (f.getName().contains(".xml") && DBM.existReferenceTable(ctx.Id().getText(), f)){
+			        				if (f.getName().contains(".xml") && !f.getName().contains(id) && DBM.existReferenceTable(ctx.Id().getText(), f)){
 			        					String n1 = f.getName();
 			        					String n2 = n1.substring(0, n1.indexOf(".xml"));
 			        					Document docR = hmDatabase.get(n2);
-			        					
 			        					Document docN = DBM.deleteColumnValue(n2, condR, docR);
 			        					hmDatabase.remove(n2);
 			        					hmDatabase.put(n2, docN);
@@ -803,7 +803,42 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 
 	@Override
 	public Type visitShowColumns(GSQLParser.ShowColumnsContext ctx) {
-		// TODO Auto-generated method stub
+		try{
+			table.reset();
+			String tableName = ctx.Id().getText();
+			File f = new File("DB/"+DBActual+"/"+tableName+".xml");
+			DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+			DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+			Document doc = docBuilder.parse(f);
+			doc.getDocumentElement().normalize();
+			
+			Element rootElement = doc.getDocumentElement();
+			Element modelElement = (Element) rootElement.getFirstChild();
+			Element columnElement = (Element) modelElement.getFirstChild();
+			
+			String[] heading = {"Column Name","Type","Length","Restriction"};
+			table.setColumnSelect(heading);
+			for (int i=0; i<columnElement.getChildNodes().getLength(); i++){
+				String[] row = new String[4];
+				Element eActual = (Element) columnElement.getChildNodes().item(i);
+				row[0] = eActual.getNodeName();
+				row[1] = eActual.getAttribute("Type");
+				if (row[1].equals("CHAR")){
+					row[2] = eActual.getAttribute("Length");
+				}
+				else{
+					row[2] = "";
+				}
+				row[3] = "RESTRICTIONS...";
+				
+				table.addTable(row);
+			}
+			table.show();
+			
+		}catch(Exception e){
+			
+		}
+		
 		return super.visitShowColumns(ctx);
 	}
 
@@ -841,6 +876,10 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 	public Type visitShowTables(GSQLParser.ShowTablesContext ctx) {
 		// TODO Auto-generated method stub
 		try{
+			table.reset();
+			DBM.saveDatabase(DBActual, hmDatabase);	
+			DBM.serializeArray(DBActual, PrimaryKeys);
+			
 			Tables t = new Tables();
 			File folder = new File("DB/"+DBActual+"/");
 			File[] listOfFiles = folder.listFiles();
@@ -1351,8 +1390,19 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 
 	@Override
 	public Type visitShowDatabase(GSQLParser.ShowDatabaseContext ctx) {
-		// TODO Auto-generated method stub
-		return super.visitShowDatabase(ctx);
+		String[] encab = {"Name","Tables","Records"};
+		table.setColumnSelect(encab);
+		String[] row = new String[3];
+		String[] nombres = DBM.getNombresDatabase();
+		for (int i=0; i<nombres.length; i++){
+			row[0] = nombres[i];
+			int[] cant = DBM.getCant(nombres[i]);
+			row[1] = ""+cant[0];
+			row[2] = ""+cant[1];
+			table.addTable(row);
+		}
+		table.show();
+		return null;
 	}
 
 	@Override
@@ -1549,8 +1599,7 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 					        	for (int j=1; j<ctx.Id().size(); j++){
 					        		String columnString = ctx.Id(j).getText();
 					        		Element columnValueElement = (Element) columnElement.getElementsByTagName(columnString).item(0);
-					        		UnaryExpression uT = (UnaryExpression) visit(ctx.literal(j-1)); 
-					        		ValueType vT = (ValueType) uT;
+					        		ValueType vT = (ValueType) visit(ctx.literal(j-1));;
 					        		String valType = vT.getName().toUpperCase();
 					        		String valColumn = columnValueElement.getAttribute("Type").toUpperCase();
 					        		if (valType.equals(valColumn)){
@@ -1568,7 +1617,7 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 								        					String n2 = n1.substring(0, n1.indexOf(".xml"));
 								        					Document docR = hmDatabase.get(n2);
 								        					String columnFK = DBM.getColumnFKTable(columnString, f);
-								        					DBM.changeColumnValue(columnFK,valueOld, value, docR);
+								        					DBM.changeColumnValue(n2,columnFK,valueOld, value, docR);
 								        				}
 								        			}
 								        			String pkNew = "";
@@ -1615,7 +1664,7 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 							        					String n2 = n1.substring(0, n1.indexOf(".xml"));
 							        					Document docR = hmDatabase.get(n2);
 							        					String columnFK = DBM.getColumnFKTable(columnString, f);
-							        					DBM.changeColumnValue(columnFK, valueOld, value, docR);
+							        					DBM.changeColumnValue(n2,columnFK, valueOld, value, docR);
 							        				}
 							        			}
 							        			String pkNew = "";
@@ -1720,28 +1769,47 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 		// TODO Auto-generated method stub
 		return super.visitLiteral(ctx);
 	}
+	
+	@Override
+	public Type visitOrderId(GSQLParser.OrderIdContext ctx) {
+		UnaryExpression ids = (UnaryExpression) visit(ctx.select_id());
+		IdValueType idVal = (IdValueType) ids;
+		String order = "asc";
+		if (ctx.orderType()!=null){
+			ValueType typeOrder = (ValueType) visit(ctx.orderType());
+			order = typeOrder.getValue();
+		}
+		if (idVal.hasRef()){
+			return new ValueType(idVal.getTableRef()+"."+idVal.getValue(), order);
+		}
+		else{
+			return new ValueType(idVal.getValue(), order);
+		}
+	}
 
 	@Override
 	public Type visitOrderBy(GSQLParser.OrderByContext ctx) {
-		String[][] order = new String[ctx.select_id().size()][ctx.select_id().size()];
-		for (int i=0; i<ctx.select_id().size(); i++){
-			String[] orderS = new String[3];
-			UnaryExpression ids = (UnaryExpression) visit(ctx.select_id(i));
-			IdValueType idVal = (IdValueType) ids;
-			String id = idVal.getValue();
-			if (idVal.hasRef()){
+		String[][] order = new String[ctx.orderId().size()][ctx.orderId().size()];
+		boolean error = false;
+		for (int i=0; i<ctx.orderId().size(); i++){
+			String[] orderS = new String[2];
+			ValueType valueId = (ValueType) visit(ctx.orderId(i));
+			String id = valueId.getName();
+			String orderTable = valueId.getValue();
+			
+			if (table.getIndexOfColumnSelect(id)!=-1){
 				orderS[0] = id;
-				orderS[2] = idVal.getTableRef();
+				orderS[1] = orderTable;
+				order[i] = orderS;
 			}
 			else{
-				orderS[0] = id;
-				orderS[2] = null;
+				System.out.println("Column "+id+" is not in select field.");
+				error = true;
 			}
-			orderS[1] = visit(ctx.orderType(i)).toString();
-			order[i] = orderS;
 		}
-		table.orderTable(order);
-		return null;//super.visitOrderBy(ctx);
+		if (!error)
+			table.orderTable(order);
+		return null;
 	}
 
 	@Override
@@ -1757,119 +1825,105 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 	@Override
 	public Type visitSelect(GSQLParser.SelectContext ctx) {
 		try{
+			table.reset();
 			CartesianTable cT = (CartesianTable) visit(ctx.from());
 			Element rows = cT.getGeneral();
-			MultipleExpression where = (MultipleExpression) visit(ctx.where());
-			if (!where.eError()){
-				String t = "";
-				HashMap<String,String> referencias = where.getUnaries(t,where, new HashMap<String,String>());
-								
-				String exp = "/Database/row[";
-				for (String r: referencias.keySet()){
-					exp+=r+"]";
+			if (ctx.where()!=null){
+				MultipleExpression where = (MultipleExpression) visit(ctx.where());
+				if (!where.eError()){
+					String t = "";
+					HashMap<String,String> referencias = where.getUnaries(t,where, new HashMap<String,String>());
+									
+					String exp = "/Database/row[";
+					for (String r: referencias.keySet()){
+						exp+=r+"]";
+					}
+					
+					//use database db; select * from persons, fechas where persons.personid=10;
+					//exp = "/Database/row[./personid[@Reference = \'persons\']/text() = ./fechaid[@Reference=\'fechas\']/text()]";
+					
+					
+					
+					
+					XPathFactory xPathfactory = XPathFactory.newInstance();
+					XPath xpath = xPathfactory.newXPath();
+					XPathExpression expr = xpath.compile(exp);
+					Object result = expr.evaluate(rows, XPathConstants.NODESET);
+			        NodeList nodes = (NodeList) result;
+			        boolean error = false;
+			        
+			        String[] columnHead = new String[nodes.item(0).getChildNodes().getLength()];
+			        for (int i=0; i<nodes.item(0).getChildNodes().getLength(); i++){
+			        	Element eActual = (Element) nodes.item(0).getChildNodes().item(i);
+			        	columnHead[i] = eActual.getAttribute("Reference")+"."+eActual.getNodeName();
+			        }
+			        table.setTableHeader(columnHead);
+			        for (int i=0; i<nodes.getLength(); i++){		        	
+		        		Element eActual = (Element) nodes.item(i);
+		        		ValueType[] column = new ValueType[eActual.getChildNodes().getLength()];
+		        		for (int j=0; j<eActual.getChildNodes().getLength(); j++){
+		        			Element eHijo = (Element) eActual.getChildNodes().item(j);
+		        			int index = table.getIndexOfColumn(eHijo.getAttribute("Reference")+"."+eHijo.getNodeName());
+		        			column[index] = new ValueType(eHijo.getAttribute("Type"), eHijo.getTextContent());
+		        			table.addTableSelect(column);
+		        		}
+			        }
 				}
+				else{
+					System.out.println("Error in expression.");
+				}
+			}
+			else{
 				
-				//use database db; select * from persons, fechas where persons.personid=10;
-				//exp = "/Database/row[./personid[@Reference = \'persons\']/text() = ./fechaid[@Reference=\'fechas\']/text()]";
-				
-				
-				/*File fT = new File("DB/PRUEBASSSSS.md");
+				File fT = new File("DB/PRUEBASSSSS.md");
 				TransformerFactory transformerFactory = TransformerFactory.newInstance();
 				Transformer transformer = transformerFactory.newTransformer();
 				DOMSource source = new DOMSource(rows);
 				StreamResult results = new StreamResult(fT);
 				transformer.transform(source, results);
 				fT.getParentFile().mkdirs(); 
-				fT.createNewFile();*/
+				fT.createNewFile();
 				
-				XPathFactory xPathfactory = XPathFactory.newInstance();
-				XPath xpath = xPathfactory.newXPath();
-				XPathExpression expr = xpath.compile(exp);
-				Object result = expr.evaluate(rows, XPathConstants.NODESET);
-		        NodeList nodes = (NodeList) result;
-		        for (int i=0; i<nodes.getLength(); i++){
-		        	if (ctx.all==null){
-		        		String[] column = new String[ctx.select_id().size()];
-		        		String[] columnHead = new String[ctx.select_id().size()];
-		        		for (int j=0; j<ctx.select_id().size(); j++){
-		        			Element eActual = (Element) nodes.item(i);
-		        			UnaryExpression ids = (UnaryExpression) visit(ctx.select_id(j));
-		        			IdValueType idVal = (IdValueType) ids;
-		        			String id = idVal.getValue();
-		        			if (eActual.getElementsByTagName(id).getLength()==1){
-		        				if (!idVal.hasRef()){
-		        					columnHead[j] = id;
-		        				}
-		        				else{
-		        					columnHead[j] = idVal.getTableRef()+"."+id;
-		        				}
-		        				Element eCampo = (Element) eActual.getElementsByTagName(id).item(0);
-		        				column[j] = eCampo.getTextContent();
-		        				table.addTableSelect(column);
-		        			}
-		        			else if(eActual.getElementsByTagName(id).getLength()>1 && idVal.hasRef()){
-		        				columnHead[j] = idVal.getTableRef()+"."+id;
-		        				NodeList nodos = eActual.getElementsByTagName(id);
-		        				boolean hubo = false;
-		        				for (int k=0; k<nodos.getLength(); k++){
-		        					Element eCampo = (Element) eActual.getElementsByTagName(id).item(k);
-			        				if (eCampo.getAttribute("Reference").equals(idVal.getTableRef())){
-			        					column[j] = eCampo.getTextContent();
-			        					hubo = true;
-			        				}
-		        				}
-		        				if (hubo){
-		        					table.addTableSelect(column);
-		        				}
-		        				else{
-		        					System.out.println("Reference "+idVal.getTableRef()+" does not exist; or column "+id+" does not exist in the reference.");
-		        				}
-		        			}
-		        			else if(eActual.getElementsByTagName(id).getLength()>0 && !idVal.hasRef()){
-		        				System.out.println("Column duplicated. Please specify the table.");
-		        			}
-		        			else{
-		        				System.out.println("Column "+id+" does not exist in relation.");
-		        			}
-			        	}
-		        		table.setTableHeader(columnHead);
-		        	}
-		        	else{
-		        		Element eActual = (Element) nodes.item(i);
-		        		String[] column = new String[eActual.getChildNodes().getLength()];
-		        		if (i==0){
-			        		String[] columnHead = new String[column.length];
-			        		for (int j=0; j<eActual.getChildNodes().getLength(); j++){
-			        			Element hijoActual = (Element) eActual.getChildNodes().item(j);
-			        			columnHead[j] = hijoActual.getAttribute("Reference")+"."+hijoActual.getNodeName();
-			        			//columnHead[j] = hijoActual.getNodeName();
-			        		}
-			        		table.setTableHeader(columnHead);
-		        		}
-		        		for (int j=0; j<eActual.getChildNodes().getLength(); j++){
-		        			Element hijoActual = (Element) eActual.getChildNodes().item(j);
-		        			int index = table.getIndexOfColumn(hijoActual.getAttribute("Reference")+"."+hijoActual.getNodeName());
-		        			//int index = table.getIndexOfColumn(hijoActual.getNodeName());
-		        			column[index] = hijoActual.getTextContent();
-		        		}
-		        		table.addTableSelect(column);
-		        	}
-		        }
-		        
-		        if (ctx.orderBy()==null && nodes.getLength()!=0){
-		        	table.showTable();
-		        }
-		        else if (ctx.orderBy()!=null && nodes.getLength()!=0){
-		        	visit(ctx.orderBy());
-		        	//table.showTable();
-		        }
-		        else{
-		        	System.out.println("No results");
-		        }
+				String[] heading = new String[rows.getChildNodes().item(0).getChildNodes().getLength()];
+				for (int i=0; i<rows.getChildNodes().item(0).getChildNodes().getLength(); i++){
+					Element e = (Element) rows.getChildNodes().item(0).getChildNodes().item(i);
+					heading[i] = e.getAttribute("Reference")+"."+e.getNodeName();
+				}
+				table.setTableHeader(heading);
+				for (int i=0; i<rows.getChildNodes().getLength(); i++){
+					Element e = (Element) rows.getChildNodes().item(i);
+					ValueType[] val = new ValueType[heading.length];
+					for (int j=0; j<e.getChildNodes().getLength(); j++){
+						Element eHijo = (Element) e.getChildNodes().item(j);
+						int index = table.getIndexOfColumn(eHijo.getAttribute("Reference")+"."+eHijo.getNodeName());
+						val[index] = new ValueType(eHijo.getAttribute("Type"), eHijo.getTextContent());
+					}
+					table.addTableSelect(val);
+				}
 			}
-			else{
-				System.out.println("Error in expression.");
-			}
+			if (ctx.select_id().size()!=0){
+		        String[] columnsSelect = new String[ctx.select_id().size()];
+		        for (int i=0; i<ctx.select_id().size(); i++){
+		        	UnaryExpression ids = (UnaryExpression) visit(ctx.select_id(i));
+					IdValueType idVal = (IdValueType) ids;
+					String id = idVal.getValue();
+					columnsSelect[i] = idVal.getTableRef()+"."+id;
+		        }
+		        table.setColumnSelect(columnsSelect);
+	        }
+	        else{
+	        	table.setColumnSelectAll();
+	        }
+	        
+	        if (ctx.orderBy()==null){
+	        	table.showTable();
+	        }
+	        else if (ctx.orderBy()!=null){
+	        	visit(ctx.orderBy());
+	        }
+	        else{
+	        	System.out.println("No results");
+	        }
 		}catch(Exception e){e.printStackTrace();}
         
 		return null;

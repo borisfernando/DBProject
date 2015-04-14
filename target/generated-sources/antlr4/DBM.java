@@ -52,7 +52,16 @@ public class DBM {
 		return retorno;
 	}
 	
-	public static Document changeColumnValue(String column, String oldValue, String value, Document doc){
+	public static String getTypeColumnInDocument(String column, Document doc){
+		doc.getDocumentElement().normalize();
+		Element rootElement = doc.getDocumentElement();
+		Element modelElement = (Element) rootElement.getFirstChild();
+		Element columnElement = (Element) modelElement.getFirstChild();
+		Element nlist = (Element) columnElement.getElementsByTagName(column).item(0);
+		return nlist.getAttribute("Type");
+	}
+	
+	public static Document changeColumnValue(String table,String column, String oldValue, String value, Document doc){
 		try{
 			doc.getDocumentElement().normalize();
 			
@@ -60,12 +69,15 @@ public class DBM {
 			Element databaseElement = (Element) rootElement.getLastChild();
 			
 			NodeList listRows = databaseElement.getElementsByTagName(column);
+			int cont=0;
 			for (int i=0; i<listRows.getLength(); i++){
 				Element eActual = (Element) listRows.item(i);
 				if (eActual.getTextContent().equals(oldValue)){
 					eActual.setTextContent(value);
+					cont++;
 				}
 			}
+			System.out.println("UPDATE("+cont+") in table "+table);
 		}catch(Exception e){e.printStackTrace();}
 		return doc;
 	}
@@ -939,8 +951,6 @@ public class DBM {
 			Document doc = docBuilder.parse(fT);
 			doc.getDocumentElement().normalize();
 					
-			
-			
 			for (int i=0; i<doc.getElementsByTagName("Name").getLength(); i++){
 				Node nActual = doc.getElementsByTagName("Name").item(i);
 				if (nActual.getTextContent().equals(database)){
@@ -960,6 +970,25 @@ public class DBM {
 
 		}catch(Exception e){e.printStackTrace();}
 		return cant;
+	}
+	
+	public static String[] getNombresDatabase(){
+		String[] nombres = null;
+		try{
+			File fT = new File("DB/Databases.md");
+			DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+			DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+			Document doc = docBuilder.parse(fT);
+			doc.getDocumentElement().normalize();
+			
+			NodeList nombresList = doc.getElementsByTagName("Name");
+			nombres = new String[nombresList.getLength()];
+			for (int i=0; i<nombresList.getLength(); i++){
+				Node nActual = nombresList.item(i);
+				nombres[i] = nActual.getTextContent();
+			}
+		}catch(Exception e){e.printStackTrace();}
+		return nombres;
 	}
 	
 	/*

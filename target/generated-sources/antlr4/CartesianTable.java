@@ -29,7 +29,9 @@ public class CartesianTable implements Type {
 						Element eTable = (Element) nListTable.item(i);
 						for (int j=0; j<eTable.getChildNodes().getLength(); j++){
 							Element eHijo = (Element) eTable.getChildNodes().item(j);
+							String nombre = eHijo.getNodeName();
 							eHijo.setAttribute("Reference", id);
+							eHijo.setAttribute("Type", DBM.getTypeColumnInDocument(nombre, DocumentID));
 						}
 						eTable.removeAttribute(eTable.getAttributes().item(0).getNodeName());
 						eNuevo.appendChild(DocumentID.importNode(DocumentID.renameNode(eTable,null,"row"),true));
@@ -46,7 +48,9 @@ public class CartesianTable implements Type {
 									Element eNew = docDoc.createElement("row");
 									for (int k=0; k<eActual.getChildNodes().getLength(); k++){
 										Element eHijo = (Element) eActual.getChildNodes().item(k);
+										String nombre = eHijo.getNodeName();
 										eHijo.setAttribute("Reference", id);
+										eHijo.setAttribute("Type", DBM.getTypeColumnInDocument(nombre, DocumentID));
 										eNew.appendChild(docDoc.importNode(eHijo,true));
 									}
 									Element eDoc = (Element) docTableList.item(j);

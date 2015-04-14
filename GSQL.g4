@@ -273,7 +273,7 @@ deleteFrom
 	;
 	
 select
-	:	SELECT (all='*'|select_id (',' select_id)*) from ( where (orderBy)? )?  
+	:	SELECT (all='*'|select_id (',' select_id)*) from ( where )? ( orderBy )?  
 	;
 	
 from
@@ -285,9 +285,13 @@ where
 	;
 	
 orderBy	
-	:	ORDER BY select_id (orderType)? (',' select_id (orderType)?)*
+	:	ORDER BY orderId (',' orderId)*
 	;
 	
+orderId
+	:	select_id (orderType)?	
+	;
+
 orderType
 	:	(ASC|DESC)
 	;
