@@ -75,12 +75,18 @@ public class Tables {
 		this.columnHeader = columnHeader;
 	}
 	
+	public void printHeader(String[] header){
+		for (String h: header){
+			System.out.print(h+" ");
+		}
+	}
+	
 	public int getIndexOfColumn(String column){
 		for (int i=0; i<columnHeader.length; i++){
 			if (columnHeader[i].equals(column)){
 				return i;
 			}
-			else if(columnHeader[i].substring(columnHeader[i].indexOf(".")+1, columnHeader[i].length()).equals(column)){
+			else if(columnHeader[i].substring(columnHeader[i].indexOf("."), columnHeader[i].length()).equals(column)){
 				return i;
 			}
 		}
@@ -92,7 +98,7 @@ public class Tables {
 			if (columnSelect[i].equals(column)){
 				return i;
 			}
-			else if(columnSelect[i].substring(columnSelect[i].indexOf(".")+1, columnSelect[i].length()).equals(column)){
+			else if(columnSelect[i].substring(columnSelect[i].indexOf("."), columnSelect[i].length()).equals(column)){
 				return i;
 			}
 		}
@@ -106,8 +112,11 @@ public class Tables {
 			String[] orderActual = orderParam[i];
 			int index = getIndexOfColumn(orderActual[0]);
 			if (index==-1){
-				System.out.println("Column "+orderActual[0]+" does not exist. Or is not in the select.");
-				error = true;
+				index = getIndexOfColumn("."+orderActual[0]);
+				if (index==-1){
+					System.out.println("Column "+orderActual[0]+" does not exist. Or is not in the select.");
+					error = true;
+				}
 			}
 		}
 		if (!error){
@@ -117,6 +126,9 @@ public class Tables {
 		        	for (int i=0; i<orderParam.length; i++){
 		        		String[] orderActual = orderParam[i];
 		    			int index = getIndexOfColumn(orderActual[0]);
+		    			if (index==-1){
+		    				index = getIndexOfColumn("."+orderActual[0]);
+		    			}
 		    			final int indexOf = index;
 		    			if (result==0){
 		    				if (strings[indexOf].getName().equals("INT")){

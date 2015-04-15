@@ -33,6 +33,22 @@ public class DBM {
 	 * Use: returns true if the directory was deleted, false otherwise
 	 */
 
+	public static ArrayList<String> getNamesConstraint(Element constraintElement){
+		ArrayList<String> names = new ArrayList<String>();
+		try{
+			Element pkElement = (Element) constraintElement.getFirstChild();
+			Element pkElementChild = (Element) pkElement.getChildNodes().item(0);
+			names.add(pkElementChild.getAttribute("Name"));
+			Element fkElement = (Element) constraintElement.getLastChild();
+			NodeList nlist = fkElement.getElementsByTagName("FK");
+			for (int i=0; i<nlist.getLength(); i++){
+				Element eActual = (Element) nlist.item(i);
+				names.add(eActual.getAttribute("Name"));
+			}
+		}catch(Exception e){}
+		return names;
+	}
+	
 	public static ArrayList<String> getColumnsByTable(String table,String DBActual){
 		ArrayList<String> retorno = new ArrayList<String>();
 		try{
@@ -50,6 +66,37 @@ public class DBM {
 			}
 		}catch(Exception e){e.printStackTrace();}
 		return retorno;
+	}
+	
+	public static boolean isFk(String column, Element constraintElement){
+		try{
+			Element fkElement = (Element) constraintElement.getLastChild();
+			NodeList nodeFK = fkElement.getElementsByTagName("FK");
+			for (int i=0; i<nodeFK.getLength(); i++){
+				Element eActual = (Element) nodeFK.item(i);
+				if (eActual.getTextContent().equals(column)){
+					return true;
+				}
+			}
+		}catch(Exception e){
+			
+		}
+		return false;
+	}
+
+	public static boolean isPk(String column, Element constraintElement){
+		try{
+			Element pkElement = (Element) constraintElement.getFirstChild();
+			for (int i=0; i<pkElement.getChildNodes().getLength(); i++){
+				Element e = (Element) pkElement.getChildNodes().item(i);
+				if (e.getTextContent().equals(column)){
+					return true;
+				}
+			}
+		}catch(Exception e){
+			
+		}
+		return false;
 	}
 	
 	public static String getTypeColumnInDocument(String column, Document doc){
@@ -1008,7 +1055,7 @@ public class DBM {
 			
 			for (int i=0; i<doc.getElementsByTagName("Name").getLength(); i++){
 				Node nActual = doc.getElementsByTagName("Name").item(i);
-				if (nActual.getTextContent().toLowerCase().equals(database.toLowerCase())){
+				if (nActual.getTextContent().equals(database)){
 					bExist = true;
 				}
 			}

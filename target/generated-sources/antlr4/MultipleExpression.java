@@ -73,7 +73,7 @@ public class MultipleExpression extends Expression{
 				}
 			}
 			else if (uExp.getType().equals("CHAR")){
-				columns.put("oConstant", "\'"+uExp.getValue()+"\'");
+				columns.put("oConstant", uExp.getValue());
 			}
 			else{
 				columns.put("oConstant", uExp.getValue());
