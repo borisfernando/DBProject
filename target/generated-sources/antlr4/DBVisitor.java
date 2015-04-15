@@ -30,7 +30,7 @@ import com.sun.jmx.interceptor.DefaultMBeanServerInterceptor;
 //import sun.org.mozilla.javascript.internal.ast.NewExpression;
 
 public class DBVisitor extends GSQLBaseVisitor<Type>{
-	private static String DBActual = "";
+	public static String DBActual = "";
 	private static String TableActual = "";
 	private static int contNumRow = 0;
 	private static HashMap<String, Document> hmDatabase;

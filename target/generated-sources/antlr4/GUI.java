@@ -14,10 +14,12 @@ import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
+import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
 
 public class GUI extends JFrame {
@@ -79,6 +81,8 @@ public class GUI extends JFrame {
 		JPanel panel1 = new JPanel(false);
 		contentPane.add(panel1);
 		panel1.setLayout(null);
+		
+		JTextArea database = new JTextArea("");
 		
 		// Input field
 		final JScrollPane inputScroll = new JScrollPane();
@@ -163,6 +167,7 @@ public class GUI extends JFrame {
 				
 				compile = new Controller();
 				compile.parse(texto);
+				database.setText("\n\t"+compile.dbactual());
 				
 				inputText.setEditable(true);
 				cargar.setEnabled(true);
@@ -199,6 +204,21 @@ public class GUI extends JFrame {
 		});
 		reset.setBounds(780, 180, 110, 25);
 		panel1.add(reset);
+		
+		JLabel label = new JLabel("Database Actual");
+		label.setBounds(795,230,100,20);
+		database.setTabSize(3);
+		database.setBackground(Color.getHSBColor(250, 251, 249));
+		//Border border; 
+		//border.setForeground(Color.BLUE);
+		//database.setBorder(border);
+		database.setEditable(false);
+		database.setBounds(780, 250, 130, 60);
+		
+		panel1.add(label);
+		panel1.add(database);
+		
+		
 		
 	}
 }
