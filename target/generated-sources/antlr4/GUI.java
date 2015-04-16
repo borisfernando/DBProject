@@ -1,3 +1,19 @@
+/*
+ * Universidad del Valle de Guatemala
+ * Bases de Datos
+ * Proyecto I
+ * Autores: 
+ * 			Oscar Gil,		12358
+ * 			Boris Becerra,	12461
+ * Nombre del Archivo:
+ * 			GUI.java
+ * Proposito:
+ * 			
+ * Fecha de Creacion:
+ * 15/04/2015
+ * 
+ */
+
 import java.awt.Color;
 import java.awt.EventQueue;
 import java.awt.Font;
@@ -6,6 +22,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
+import java.io.File;
 import java.io.PrintStream;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
@@ -69,6 +86,12 @@ public class GUI extends JFrame {
 	 * Create the frame.
 	 */
 	public GUI() {
+		
+		File f = new File("DB/");
+		if (!f.exists()){
+			f.mkdirs();
+		}
+		
 		compile = new Controller();
 		setResizable(false);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -82,7 +105,7 @@ public class GUI extends JFrame {
 		contentPane.add(panel1);
 		panel1.setLayout(null);
 		
-		JTextArea database = new JTextArea("");
+		final JTextArea database = new JTextArea("");
 		
 		// Input field
 		final JScrollPane inputScroll = new JScrollPane();
@@ -164,7 +187,6 @@ public class GUI extends JFrame {
 				if (!bProgram){
 					texto = inputText.getText();
 				}
-				
 				compile = new Controller();
 				compile.parse(texto);
 				database.setText("\n\t"+compile.dbactual());

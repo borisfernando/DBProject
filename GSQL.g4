@@ -110,11 +110,11 @@ tableInstruction
 	;
 		
 createTable
-	:	CREATE TABLE Id ( '(' Id type (',' Id type)* (',' CONSTRAINT (constraint (',' constraint)*))? ')' )?
+	:	CREATE TABLE Id ( '(' Id type (',' Id type)* (',' CONSTRAINT constraint (',' constraint)*) ')' )?
 	;
 
 constraint
-	:	primaryKey | foreignKey (foreignKey)* | check (check)*
+	:	primaryKey | foreignKey (foreignKey)* | check
 	;
 	
 primaryKey

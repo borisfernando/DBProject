@@ -1,3 +1,19 @@
+/*
+ * Universidad del Valle de Guatemala
+ * Bases de Datos
+ * Proyecto I
+ * Autores: 
+ * 			Oscar Gil,		12358
+ * 			Boris Becerra,	12461
+ * Nombre del Archivo:
+ * 			DBM.java
+ * Proposito:
+ * 			Clase que realiza diferentes acciones para la base de datos
+ * Fecha de Creacion:
+ * 15/04/2015
+ * 
+ */
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -33,6 +49,12 @@ public class DBM {
 	 * Use: returns true if the directory was deleted, false otherwise
 	 */
 
+	/*
+	 * Nombre: getNamesConstraint
+	 * Proposito: Retorna los nombres de todas las constraints
+	 * Parametro: Elemento constraint
+	 * Retorno: ArrayList donde estan almacenados todos los nombres de las constraints
+	 */
 	public static ArrayList<String> getNamesConstraint(Element constraintElement){
 		ArrayList<String> names = new ArrayList<String>();
 		try{
@@ -49,6 +71,12 @@ public class DBM {
 		return names;
 	}
 	
+	/*
+	 * Nombre: getColumnsByTable
+	 * Proposito: Retorna todas las columnas que tiene una tabla
+	 * Parametro: Tabla y Database actual
+	 * Retorno: ArrayList donde estan almacenados todos los nombres de las columnas de la tabla especificada.
+	 */
 	public static ArrayList<String> getColumnsByTable(String table,String DBActual){
 		ArrayList<String> retorno = new ArrayList<String>();
 		try{
@@ -68,6 +96,12 @@ public class DBM {
 		return retorno;
 	}
 	
+	/*
+	 * Nombre: isFk
+	 * Proposito: Retorna si la columna dada es primary key
+	 * Parametro: Columna a revisar y el constraintElement
+	 * Retorno: True si es primary key y false de lo contrario.
+	 */
 	public static boolean isFk(String column, Element constraintElement){
 		try{
 			Element fkElement = (Element) constraintElement.getLastChild();
@@ -84,6 +118,12 @@ public class DBM {
 		return false;
 	}
 
+	/*
+	 * Nombre: isFk
+	 * Proposito: Retorna si la columna dada es foreign key
+	 * Parametro: Columna a revisar y el constraintElement
+	 * Retorno: True si es foreign key y false de lo contrario.
+	 */
 	public static boolean isPk(String column, Element constraintElement){
 		try{
 			Element pkElement = (Element) constraintElement.getFirstChild();
@@ -99,6 +139,12 @@ public class DBM {
 		return false;
 	}
 	
+	/*
+	 * Nombre: getTypeColumnInDocument
+	 * Proposito: Retorna el tipo de la columna en el documento actual
+	 * Parametro: Columna a revisar y el documento
+	 * Retorno: El tipo de la columna actual
+	 */
 	public static String getTypeColumnInDocument(String column, Document doc){
 		doc.getDocumentElement().normalize();
 		Element rootElement = doc.getDocumentElement();
@@ -108,6 +154,12 @@ public class DBM {
 		return nlist.getAttribute("Type");
 	}
 	
+	/*
+	 * Nombre: changeColumnValue
+	 * Proposito: Modifica todos los valores de la columna dada
+	 * Parametro: Tabla actual, columna a modificar, texto anterior, texto actual y el documento
+	 * Retorno: El documento actualizado
+	 */
 	public static Document changeColumnValue(String table,String column, String oldValue, String value, Document doc){
 		try{
 			doc.getDocumentElement().normalize();
@@ -129,6 +181,12 @@ public class DBM {
 		return doc;
 	}
 
+	/*
+	 * Nombre: deleteColumnValue
+	 * Proposito: Elimina el valor de la columna actual
+	 * Parametro: Tabla actual, columna actual y el documento
+	 * Retorno: El documento actualizado
+	 */
 	public static Document deleteColumnValue(String TableActual, String condition, Document doc){
 		try{
 			String exp = "/Table/Database/"+TableActual+"_Row"+condition;
@@ -153,6 +211,12 @@ public class DBM {
 		return doc;
 	}
 	
+	/*
+	 * Nombre: deleteDirectory
+	 * Proposito: Elimina el directorio
+	 * Parametro: Archivo del directorio a eliminar
+	 * Retorno: True si se elimino y false de lo contrario
+	 */
 	public static boolean deleteDirectory(File directory) {
 	    if(directory.exists()){
 	        File[] files = directory.listFiles();
@@ -170,6 +234,12 @@ public class DBM {
 	    return(directory.delete());
 	}
 	
+	/*
+	 * Nombre: getElementByName
+	 * Proposito: Retorna el documento de la tabla (archivo) dado
+	 * Parametro: Archivo o Tabla actual
+	 * Retorno: Documento pedido
+	 */
 	public static Document getElementByName(File f){
 		Document doc = null;
 		try{
@@ -180,6 +250,12 @@ public class DBM {
 		return doc;
 	}
 	
+	/*
+	 * Nombre: getTypeColumn
+	 * Proposito: Retorna las caracteristicas de la columna actual
+	 * Parametro: Columna actual y tabla de donde obtenerlo
+	 * Retorno: Atributos con los elementos pedidos
+	 */
 	public static NamedNodeMap getTypeColumn(File fT, String column){
 		try{
 			DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
@@ -199,6 +275,12 @@ public class DBM {
 		return null;
 	}
 	
+	/*
+	 * Nombre: existReferenceColumn
+	 * Proposito: Retorna si existe alguna referencia a esa columna en el archivo dado
+	 * Parametro: Tabla actual, columna a revisar y archivo actual
+	 * Retorno: True si es tiene referencia y false de lo contrario.
+	 */
 	public static boolean existReferenceColumn(String table, String column, File fT){
 		try{
 			DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
@@ -223,6 +305,12 @@ public class DBM {
 		return false;
 	}
 	
+	/*
+	 * Nombre: existReferenceTable
+	 * Proposito: Retorna si existe alguna referencia a esa tabla en el archivo dado
+	 * Parametro: Tabla a revisar y archivo actual
+	 * Retorno: True si es tiene referencia y false de lo contrario.
+	 */
 	public static boolean existReferenceTable(String table, File fT){
 		try{
 			DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
@@ -242,6 +330,12 @@ public class DBM {
 		return false;
 	}
 	
+	/*
+	 * Nombre: existColumnInTable
+	 * Proposito: Retorna si existe una columna en una tabla
+	 * Parametro: Archivo (tabla) actual y la columna a revisar
+	 * Retorno: True si existe y false de lo contrario.
+	 */
 	public static boolean existColumnInTable(File fT, String column){
 		boolean retorno = true;
 		try{
@@ -260,6 +354,33 @@ public class DBM {
 		return retorno;
 	}
 	
+	/*
+	 * Nombre: existColumnInTable
+	 * Proposito: Retorna si existe una columna en una tabla
+	 * Parametro: Documento (tabla) actual y la columna a revisar
+	 * Retorno: True si existe y false de lo contrario.
+	 */
+	public static boolean existColumnInTable(Document doc, String column){
+		boolean retorno = true;
+		try{
+			doc.getDocumentElement().normalize();
+			
+			Element rootElement = doc.getDocumentElement();
+			Element modelElement = (Element) rootElement.getFirstChild();
+			Element columnElement = (Element) modelElement.getFirstChild();
+			if (columnElement.getElementsByTagName(column).getLength()==0){
+				return false;
+			}
+		}catch(Exception e){e.printStackTrace();}
+		return retorno;
+	}
+	
+	/*
+	 * Nombre: serializeArray
+	 * Proposito: Serializa o guarda el arreglo de primarykey
+	 * Parametro: Database actual y las primary keys
+	 * Retorno: null
+	 */
 	public static void serializeArray(String DBActual, HashMap<String,ArrayList<String>> hm){
 		try
         {
@@ -273,6 +394,12 @@ public class DBM {
          }
 	}
 	
+	/*
+	 * Nombre: deSerializeArray
+	 * Proposito: Retorna las primary keys
+	 * Parametro: Database actual
+	 * Retorno: HashMap con todas las primarykeys
+	 */
 	@SuppressWarnings("unchecked")
 	public static HashMap<String,ArrayList<String>> deSerializeArray(String DBActual){
 		HashMap<String,ArrayList<String>> map = new HashMap<String, ArrayList<String>>();
@@ -289,6 +416,12 @@ public class DBM {
 		return map;
 	}
 	
+	/*
+	 * Nombre: getPrimaryKeyReferenceTable
+	 * Proposito: Retorna el nombre de la tabla referenciada
+	 * Parametro: Documento a revisar
+	 * Retorno: String nombre de la tabla referenciada
+	 */
 	public static String getPrimaryKeyReferenceTable(Element modelElement){
 		String nombre = "";
 		try{
@@ -300,6 +433,12 @@ public class DBM {
 		return nombre;
 	}
 	
+	/*
+	 * Nombre: getPrimaryKeyTable
+	 * Proposito: Retorna el nombre de la primaryKey
+	 * Parametro: Elemento constraint
+	 * Retorno: Nombre de la primary key
+	 */
 	public static String getPrimaryKeyTable(Element modelElement){
 		String nombre = "";
 		try{
@@ -310,6 +449,12 @@ public class DBM {
 		return nombre;
 	}
 	
+	/*
+	 * Nombre: getColumnsPKTable
+	 * Proposito: Retorna las columnas que son primarykey
+	 * Parametro: Elemento actual
+	 * Retorno: Arreglo con el nombre de las columnas a ser primarykey
+	 */
 	public static ArrayList<String> getColumnsPKTable(Element modelElement){
 		ArrayList<String> nombres = new ArrayList<String>();
 		try{
@@ -325,6 +470,12 @@ public class DBM {
 		return nombres;
 	}
 	
+	/*
+	 * Nombre: getColumnFKTable
+	 * Proposito: Retorna la columna que es foreign key
+	 * Parametro: Columna a revisar y el archivo de la tabla actual
+	 * Retorno: El valor de la columna
+	 */
 	public static String getColumnFKTable(String column, File f){
 		try{
 			DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
@@ -372,9 +523,15 @@ public class DBM {
 				fT.getParentFile().mkdirs(); 
 				fT.createNewFile();
 			}
-		}catch(Exception e){e.printStackTrace();}
+		}catch(Exception e){}
 	}
 	
+	/*
+	 * Nombre: existpdateDeletedData
+	 * Proposito: Metodo que actualiza si se elimino alguna tabla de forma externa
+	 * Parametro: null
+	 * Retorno: null
+	 */
 	public static void updateDeletedData(){
 		try{
 			DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
@@ -433,6 +590,12 @@ public class DBM {
 		}catch(Exception e){e.printStackTrace();}
 	}
 	
+	/*
+	 * Nombre: updateDatabases
+	 * Proposito: Metodo que actualiza las bases de datos
+	 * Parametro: null
+	 * Retorno: null
+	 */
 	public static void updateDatabases(){
 		try{
 			DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
@@ -568,6 +731,12 @@ public class DBM {
 		}catch(Exception e){}
 	}
 	
+	/*
+	 * Nombre: saveDatabase
+	 * Proposito: Almacena la base de datos con todas las tablas que estan en memoria
+	 * Parametro: Nombre de la database y el documento con todas las tablas en memoria
+	 * Retorno: null
+	 */
 	public static void saveDatabase(String database, HashMap<String, Document> hm){
 		try{
 			for ( String key : hm.keySet() ) {
@@ -582,6 +751,12 @@ public class DBM {
 		}catch(Exception e){}
 	}
 	
+	/*
+	 * Nombre: cargarDatabase
+	 * Proposito: Metodo que carga las tablas en memoria
+	 * Parametro: Nombre de la database actual
+	 * Retorno: HashMap con todas las tablas en memoria
+	 */
 	public static HashMap<String, Document> cargarDatabase(String database){
 		HashMap<String, Document> hm = new HashMap<String, Document>();
 		try{
@@ -1019,6 +1194,12 @@ public class DBM {
 		return cant;
 	}
 	
+	/*
+	 * Nombre: getNombresDatabase
+	 * Proposito: Retorna todos los nombres de la databases
+	 * Parametro: null
+	 * Retorno: Nombres
+	 */
 	public static String[] getNombresDatabase(){
 		String[] nombres = null;
 		try{
@@ -1069,6 +1250,12 @@ public class DBM {
 		return bExist;
 	}
 	
+	/*
+	 * Nombre: getPrimaryKeyTable
+	 * Proposito: Retorna todas las primarykeys
+	 * Parametro: Database actual y tabla actual
+	 * Retorno: ArrayList con los nombres de las primarykey
+	 */
 	public static ArrayList<String> getPrimaryKeyTable(String DBActual, String Table){
 		ArrayList<String> pkColumns = new ArrayList<String>();
 		try{

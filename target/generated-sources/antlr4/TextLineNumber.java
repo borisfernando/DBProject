@@ -1,3 +1,19 @@
+/*
+ * Universidad del Valle de Guatemala
+ * Bases de Datos
+ * Proyecto I
+ * Autores: 
+ * 			Oscar Gil,		12358
+ * 			Boris Becerra,	12461
+ * Nombre del Archivo:
+ * 			TextLineNumber.java
+ * Proposito:
+ * 			Clase que agrega el numero de linea a los campos
+ * Fecha de Creacion:
+ * 15/04/2015
+ * 
+ */
+
 import java.awt.*;
 import java.beans.*;
 import java.util.HashMap;

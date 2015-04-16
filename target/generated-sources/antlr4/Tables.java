@@ -1,3 +1,19 @@
+/*
+ * Universidad del Valle de Guatemala
+ * Bases de Datos
+ * Proyecto I
+ * Autores: 
+ * 			Oscar Gil,		12358
+ * 			Boris Becerra,	12461
+ * Nombre del Archivo:
+ * 			Tables.java
+ * Proposito:
+ * 			Clase que muestra y guarda las tablas
+ * Fecha de Creacion:
+ * 15/04/2015
+ * 
+ */
+
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;

@@ -1,3 +1,18 @@
+/*
+ * Universidad del Valle de Guatemala
+ * Bases de Datos
+ * Proyecto I
+ * Autores: 
+ * 			Lawrence Doll
+ * Nombre del Archivo:
+ * 			TextAreaOutputStream.java
+ * Proposito:
+ * 			
+ * Fecha de Creacion:
+ * 15/04/2015
+ * 
+ */
+
 import java.awt.EventQueue;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;

@@ -1,3 +1,19 @@
+/*
+ * Universidad del Valle de Guatemala
+ * Bases de Datos
+ * Proyecto I
+ * Autores: 
+ * 			Oscar Gil,		12358
+ * 			Boris Becerra,	12461
+ * Nombre del Archivo:
+ * 			CartesianTable.java
+ * Proposito:
+ * 			Crear el producto cartesiano de las tablas en la clausula FROM
+ * Fecha de Creacion:
+ * 15/04/2015
+ * 
+ */
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import org.w3c.dom.Document;
@@ -7,11 +23,24 @@ import org.w3c.dom.NodeList;
 
 public class CartesianTable implements Type {
 	
-	Element eGeneral; 
-
+	Element eGeneral;
+	
+	/*
+	 * Nombre: CartesianTable
+	 * Proposito: Constructor que inicializa el metodo getTable
+	 * Parametro: ids de las tableas, los documentos y el documento en donde guardarlo
+	 * Retorno: null
+	 */
 	public CartesianTable(ArrayList<String> ids, HashMap<String, Document> hm, Document docDoc){
 		eGeneral = getTable(ids, hm, docDoc);
 	}
+	
+	/*
+	 * Nombre: getTable
+	 * Proposito: Metodo que retorna la tabla generada por el producto cartesiano
+	 * Parametro: Mismos parametros que el constructor
+	 * Retorno: Tabla creada
+	 */
 	public Element getTable(ArrayList<String> ids, HashMap<String, Document> hm, Document docDoc) {
 		try{
 			docDoc.getDocumentElement().normalize();
@@ -75,11 +104,23 @@ public class CartesianTable implements Type {
 		return null;
 	}
 	
+	/*
+	 * Nombre: getName
+	 * Proposito: Retorna el nombre de la clase
+	 * Parametro: null
+	 * Retorno: Nombre de la clase
+	 */
 	@Override
 	public String getName() {
 		return "From";
 	}
 	
+	/*
+	 * Nombre: getGeneral
+	 * Proposito: Metodo que retorna el elemento de la tabla actual
+	 * Parametro: null
+	 * Retorno: Elemento contenido en la clase.
+	 */
 	public Element getGeneral(){
 		return eGeneral;
 	}

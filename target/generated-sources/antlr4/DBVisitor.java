@@ -1,3 +1,21 @@
+/*
+ * Universidad del Valle de Guatemala
+ * Bases de Datos
+ * Proyecto I
+ * Autores: 
+ * 			Oscar Gil,		12358
+ * 			Boris Becerra,	12461
+ * Nombre del Archivo:
+ * 			DBVisitor.java
+ * Proposito:
+ * 			Clase que muestra todo el flujo de las instrucciones ingresadas por el usuario. 
+ * 			Esta recorre cada una de las instrucciones y ejecuta codigo dentro de cada produccion.
+ * 			Cada uno de estos metodos son una produccion declarada en la gramatica (GSQL.g4) y cada una realiza lo que deba de hacer
+ * 			segun el manejador de la base de datos. Por ejemplo visitCreateDatabase(); esta crea la base de datos con metodos de la clase DBM.
+ * Fecha de Creacion:
+ * 15/04/2015
+ * 
+ */
 
 import java.io.File;
 
@@ -27,22 +45,17 @@ import org.w3c.dom.NodeList;
 
 import com.sun.jmx.interceptor.DefaultMBeanServerInterceptor;
 
-//import sun.org.mozilla.javascript.internal.ast.NewExpression;
 
 public class DBVisitor extends GSQLBaseVisitor<Type>{
 	public static String DBActual = "";
 	private static String TableActual = "";
 	private static int contNumRow = 0;
 	private static HashMap<String, Document> hmDatabase;
-	private static HashMap<String, Index> hmPrimaryKeyDatabase; 
 	private static ArrayList<String> columnsFromTable;
 	private static HashMap<String,ArrayList<String>> PrimaryKeys = new HashMap<String,ArrayList<String>>();;
 	private Tables table;
 	
 	public DBVisitor(){
-		//PrimaryKeys = new HashMap<String, ArrayList<String>>();
-		//hmDatabase = new HashMap<String, Document>();
-		//hmPrimaryKeyDatabase = new HashMap<String, Index>();
 		columnsFromTable = new ArrayList<String>();
 		table = new Tables();
 		DBM.createMetadataD();
@@ -56,8 +69,7 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 		DBM.updateDatabases();
 		DBM.updateDeletedData();
 	}
-	
-	
+		
 	@Override
 	public Type visitProgram(GSQLParser.ProgramContext ctx) {
 		// TODO Auto-generated method stub
@@ -96,6 +108,8 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 				DBM.changeNameD(ctx.Id(0).getText(), ctx.Id(1).getText());
 				f.renameTo(fNew);
 				f.getParentFile().mkdirs();
+				if (DBActual.equals(ctx.Id(0).getText()))
+					DBActual = ctx.Id(1).getText();
 				System.out.println("Correct. Database name "+ctx.Id(0).getText()+", changed to "+ctx.Id(1).getText()+".");
 			}
 			else{
@@ -121,7 +135,6 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 				PrimaryKeys = DBM.deSerializeArray(ctx.Id().getText());
 			}
 			hmDatabase = new HashMap<String, Document>();
-			hmPrimaryKeyDatabase = new HashMap<String, Index>();
 			PrimaryKeys = DBM.deSerializeArray(ctx.Id().getText());
 			File folder = new File("DB/"+ctx.Id().getText()+"/");
 			File[] filesInFolder = folder.listFiles();
@@ -673,7 +686,6 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 		return new MultipleExpression("MExpression",e1,opString,e2,(e1.eError() || e2.eError()));
 	}
 	
-
 	@Override
 	public Type visitConstraint(GSQLParser.ConstraintContext ctx) {
 		// TODO Auto-generated method stub
@@ -1720,7 +1732,6 @@ public class DBVisitor extends GSQLBaseVisitor<Type>{
 		return new IdValueType("Unary", id, "ID", "", error, false);
 	}
 	
-
 	@Override
 	public Type visitEqRelExpression(GSQLParser.EqRelExpressionContext ctx) {
 		return visit(ctx.relExpression());
